@@ -1,0 +1,2888 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบริหารจัดการอาชีวศึกษาระบบทวิภาคี (ปวส. 2567) - DVE Management System</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sarabun', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Print styling specifically for PDF export */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10mm;
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+    }
+
+    .range-slider::-webkit-slider-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      -webkit-appearance: none;
+      box-shadow: 0 0 2px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ==================================================================== -->
+  <!-- Top Global Header Bar with Role Switcher & Cloud Status             -->
+  <!-- ==================================================================== -->
+  <header class="bg-brand-900 text-white shadow-lg sticky top-0 z-40 border-b border-brand-700">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap justify-between items-center gap-2">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner">
+          <i class="fa-solid fa-graduation-cap text-yellow-300 text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+              <span>DVE 2567</span>
+              <span class="text-xs bg-yellow-400 text-slate-900 font-extrabold px-1.5 py-0.5 rounded">ปวส. ทวิภาคี</span>
+            </h1>
+            <span class="text-[11px] text-blue-200 hidden md:inline">| ระบบบริหารจัดการอาชีวศึกษาระบบทวิภาคีครบวงจร</span>
+          </div>
+          <p class="text-xs text-blue-200" id="currentCollegeName">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์ - สอศ.</p>
+        </div>
+      </div>
+
+      <!-- Quick Role Switcher Bar (5 Levels) & Cloud Engine Indicator -->
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        
+        <!-- Live Real-time Sync Indicator -->
+        <button onclick="openCloudModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 transition shadow-sm cursor-pointer" title="คลิกเพื่อตั้งค่า Google Sheets & Google Drive">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="font-semibold" id="cloudStatusLabel">Real-time DB</span>
+          <i class="fa-solid fa-cloud text-[11px] text-emerald-400"></i>
+        </button>
+
+        <!-- Role Selector Dropdown -->
+        <div class="flex items-center bg-brand-800/90 rounded-lg p-1 border border-brand-600 shadow-inner">
+          <span class="text-blue-200 px-1.5 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-user-shield"></i>
+            <span class="hidden sm:inline">สลับบทบาท:</span>
+          </span>
+          <select id="roleSelector" onchange="switchRole(this.value)" class="bg-white text-slate-900 font-bold rounded px-2 py-1 text-xs border-0 outline-none cursor-pointer hover:bg-blue-50 transition">
+            <option value="student">👨‍🎓 นักศึกษา (Student)</option>
+            <option value="teacher">👨‍🏫 ครูนิเทศ (Supervising Teacher)</option>
+            <option value="trainer">👷 ครูฝึกสถานประกอบการ (Workplace Trainer)</option>
+            <option value="executive">👔 ผู้บริหาร (Executive)</option>
+            <option value="admin">⚙️ ผู้ดูแลระบบ (Admin)</option>
+          </select>
+        </div>
+
+        <!-- Current User Avatar Profile -->
+        <div class="flex items-center gap-2 pl-1 border-l border-brand-700">
+          <div class="w-7 h-7 rounded-full bg-yellow-400 text-slate-900 flex items-center justify-center font-bold text-xs" id="userAvatar">
+            ส
+          </div>
+          <div class="hidden xl:block text-left text-xs leading-tight">
+            <div class="font-bold text-white" id="userNameHeader">สมชาย ใจมั่นคง</div>
+            <div class="text-[10px] text-blue-200" id="userRoleHeader">นักศึกษา ปวส.2 ช่างไฟฟ้า</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================================================================== -->
+  <!-- Main Navigation Tabs Bar                                             -->
+  <!-- ==================================================================== -->
+  <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-[57px] z-30">
+    <div class="max-w-7xl mx-auto px-4 flex items-center overflow-x-auto space-x-1 py-1.5 text-xs font-semibold" id="navTabsContainer">
+      <!-- Dynamic Tabs based on Role rendered by JS -->
+    </div>
+  </nav>
+
+  <!-- ==================================================================== -->
+  <!-- Main Application Body Container                                     -->
+  <!-- ==================================================================== -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 py-6 flex-1 w-full">
+    
+    <!-- Real-time Alert Toast Notification -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+      <div class="bg-slate-900/90 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 backdrop-blur-sm">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <div>
+          <div id="toastTitle" class="font-bold text-xs">บันทึกสำเร็จ</div>
+          <div id="toastMessage" class="text-[11px] text-slate-300">ข้อมูลเชื่อมโยงกับฐานข้อมูลเรียบร้อยแล้ว</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Tab Content Area -->
+    <div id="tabContentArea" class="space-y-6">
+      <!-- Injected Dynamically via renderCurrentTab() -->
+    </div>
+
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- Document Preview Modal (Special Feature 1: พิจารณาทุน + ดูไฟล์แนบ)     -->
+  <!-- ==================================================================== -->
+  <div id="scholarshipDocModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="bg-brand-900 text-white px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-yellow-400/20 text-yellow-300 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-file-shield text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold flex items-center gap-2">
+              <span>เอกสารแนบประกอบการพิจารณาทุนการศึกษา</span>
+              <span id="docModalScholarshipBadge" class="text-[11px] bg-yellow-400 text-slate-900 px-2 py-0.5 rounded font-extrabold">ทุนทวิภาคี</span>
+            </h3>
+            <p class="text-xs text-blue-200" id="docModalStudentName">นักศึกษา: นายสมชาย ใจมั่นคง (รหัส 66301010023)</p>
+          </div>
+        </div>
+        <button onclick="closeScholarshipDocModal()" class="text-slate-300 hover:text-white text-xl p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50">
+        
+        <!-- Applicant Financial & Placement Summary Card -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[11px] text-slate-500 font-semibold">รายได้ครอบครัวเฉลี่ยต่อปี</div>
+            <div class="text-lg font-black text-rose-600" id="docModalIncome">฿ 84,000 / ปี</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">ต่ำกว่าเกณฑ์ความยากจนขั้นพื้นฐาน</div>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[11px] text-slate-500 font-semibold">สถานประกอบการที่ฝึกอาชีพ</div>
+            <div class="text-sm font-bold text-slate-800" id="docModalEnterprise">บจก. ปูนซิเมนต์ไทย (แก่งคอย)</div>
+            <div class="text-[10px] text-emerald-600 mt-0.5"><i class="fa-solid fa-check"></i> ได้รับเบี้ยเลี้ยงฝึกอาชีพ</div>
+          </div>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-[11px] text-slate-500 font-semibold">ผลการเรียนสะสม (GPAX) & คะแนนนิเทศ</div>
+            <div class="text-base font-bold text-brand-600" id="docModalGpa">GPAX: 3.65 | นิเทศ: 4.80/5.0</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">ผ่านเกณฑ์ด้านทักษะและความประพฤติ</div>
+          </div>
+        </div>
+
+        <!-- Attached Documents Gallery & Previewer -->
+        <div>
+          <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-paperclip text-brand-600"></i>
+              <span>ไฟล์เอกสารและหลักฐานที่ยื่นแนบ (ตรวจดูเพื่อประกอบการพิจารณา)</span>
+            </span>
+            <span class="text-xs text-slate-500 font-normal">คลิกที่เอกสารเพื่อดูภาพขยาย/พรีวิว</span>
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5" id="docModalFileList">
+            <!-- Dynamic Document Cards injected by JS -->
+          </div>
+        </div>
+
+        <!-- Document Live Viewer Container (Zoom / Full Preview) -->
+        <div id="docViewerBox" class="bg-white p-4 rounded-xl border border-slate-200 shadow-inner">
+          <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-100">
+            <div class="text-xs font-bold text-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-eye text-brand-500"></i>
+              <span id="docViewerTitle">พรีวิว: หนังสือรับรองรายได้ครอบครัว</span>
+            </div>
+            <a id="docViewerDriveBtn" href="#" target="_blank" class="text-xs text-brand-600 hover:text-brand-800 flex items-center gap-1 font-semibold">
+              <i class="fa-brands fa-google-drive"></i>
+              <span>เปิดใน Google Drive</span>
+            </a>
+          </div>
+          <div class="flex items-center justify-center bg-slate-900 rounded-lg min-h-[220px] max-h-[350px] overflow-hidden p-2">
+            <img id="docViewerImage" src="" alt="พรีวิวเอกสาร" class="max-h-[330px] object-contain rounded shadow">
+          </div>
+        </div>
+
+        <!-- Committee Evaluation & Decision Form -->
+        <div class="bg-white p-4 rounded-xl border border-brand-200 shadow-sm space-y-3" id="committeeDecisionBox">
+          <h4 class="text-xs font-bold text-brand-900 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-gavel text-brand-600"></i>
+            <span>บันทึกผลการพิจารณาของคณะกรรมการ (Real-time Cloud Sync)</span>
+          </h4>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ผลการพิจารณา</label>
+              <select id="evalDecisionSelect" class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="approved">✅ อนุมัติทุนการศึกษา</option>
+                <option value="pending">⏳ อยู่ระหว่างขอเอกสารเพิ่มเติม</option>
+                <option value="rejected">❌ ไม่อนุมัติ</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">วงเงินที่จัดสรร (บาท)</label>
+              <input type="number" id="evalAmountInput" class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500" value="15000">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">คะแนนการสัมภาษณ์/ความจำเป็น (1-100)</label>
+              <input type="number" id="evalScoreInput" class="w-full text-xs font-bold border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500" value="95">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ความเห็นของคณะกรรมการ/เหตุผลประกอบการตัดสินใจ</label>
+            <textarea id="evalNotesInput" rows="2" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-brand-500" placeholder="ระบุเหตุผลประกอบ เช่น เอกสารครบถ้วน ครอบครัวมีฐานะยากจน และมีความตั้งใจในการฝึกอาชีพ"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 px-6 py-3 flex justify-between items-center border-t border-slate-200">
+        <button onclick="printScholarshipDocSummary()" class="px-3.5 py-1.5 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg transition flex items-center gap-1.5">
+          <i class="fa-solid fa-print"></i>
+          <span>พิมพ์ใบสรุปพิจารณา (PDF)</span>
+        </button>
+        <div class="flex items-center space-x-2">
+          <button onclick="closeScholarshipDocModal()" class="px-4 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800">
+            ปิดหน้าต่าง
+          </button>
+          <button onclick="saveScholarshipEvaluation()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow transition flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>บันทึกผลการพิจารณา (Real-time)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- Cloud Database Setup Modal (Google Sheets & Google Drive)           -->
+  <!-- ==================================================================== -->
+  <div id="cloudSetupModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+      
+      <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold">เชื่อมต่อฐานข้อมูล Google Sheets & Google Drive</h3>
+            <p class="text-xs text-slate-300">ประมวลผล Real-time อัตโนมัติทุกครั้งที่มีการบันทึกข้อมูล</p>
+          </div>
+        </div>
+        <button onclick="closeCloudModal()" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-blue-900 flex items-start gap-2.5">
+          <i class="fa-solid fa-circle-info text-blue-600 text-sm mt-0.5"></i>
+          <div class="leading-relaxed">
+            ระบบรองรับทั้งการทำงานแบบ <span class="font-bold">Offline / Local Reactive Storage</span> ทันทีโดยไม่ต้องตั้งค่า และสามารถเชื่อมต่อ <span class="font-bold">Google Apps Script Web App</span> เพื่อกระจายข้อมูล Real-time ให้ผู้ใช้งานทั้ง 5 บทบาทได้พร้อมกัน
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL (ลงท้ายด้วย /exec)</label>
+          <div class="flex gap-2">
+            <input type="url" id="gasUrlInput" class="flex-1 font-mono text-xs border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="https://script.google.com/macros/s/AKfycbx.../exec">
+            <button onclick="testGasConnection()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-bolt"></i>
+              <span>ทดสอบเชื่อมต่อ</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">ไฟล์ Google Apps Script Code.gs มีเตรียมไว้ให้พร้อมในโปรเจกต์ สามารถนำไปวางและ Deploy ได้ทันที</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div class="font-bold text-slate-800 flex items-center gap-1.5 mb-1">
+              <i class="fa-solid fa-table text-emerald-600"></i>
+              <span>Google Sheets Database</span>
+            </div>
+            <p class="text-[11px] text-slate-600">ซิงค์ 10 ตาราง: ผู้ใช้, สถานประกอบการ, แผนฝึก, คะแนนนิเทศ 4 ด้าน, ลงเวลา, บันทึกประจำวัน, e-Portfolio, ทุนการศึกษา และสอนซ่อมเสริม</p>
+          </div>
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div class="font-bold text-slate-800 flex items-center gap-1.5 mb-1">
+              <i class="fa-brands fa-google-drive text-amber-500"></i>
+              <span>Google Drive Cloud Storage</span>
+            </div>
+            <p class="text-[11px] text-slate-600">จัดเก็บไฟล์แนบเอกสารยื่นขอทุน, รูปภาพกิจกรรมการฝึก, และหลักฐาน e-Portfolio ในโฟลเดอร์บนคลาวด์อัตโนมัติ</p>
+          </div>
+        </div>
+
+        <!-- Connection Test Result Log -->
+        <div id="gasTestResultBox" class="hidden p-3 rounded-xl text-xs font-mono border">
+          <!-- Injected via testGasConnection() -->
+        </div>
+
+      </div>
+
+      <div class="bg-slate-100 px-6 py-3 flex justify-between items-center border-t border-slate-200">
+        <button onclick="resetToMockData()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold">
+          <i class="fa-solid fa-rotate-left mr-1"></i> รีเซ็ตข้อมูลเริ่มต้น (Mock Data ปวส. 2567)
+        </button>
+        <div class="flex gap-2">
+          <button onclick="closeCloudModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800">
+            ยกเลิก
+          </button>
+          <button onclick="saveCloudConfig()" class="px-4 py-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow">
+            บันทึกการตั้งค่า
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- Dedicated Print & PDF Export Container (A4 Formats)                 -->
+  <!-- ==================================================================== -->
+  <div id="printArea" class="hidden">
+    <!-- Injected dynamically before window.print() -->
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- Application Logic & Real-time Reactive Engine                       -->
+  <!-- ==================================================================== -->
+  <script>
+    // ------------------------------------------------------------------------
+    // 1. Initial State & Relational Mock Data (ปวส. 2567 มาตรฐานทวิภาคี)
+    // ------------------------------------------------------------------------
+    
+    // Core NQF 4 Standards Definition (กรอบคุณวุฒิอาชีวศึกษาแห่งชาติ ปวส. 2567)
+    const NQF_FRAMEWORK = [
+      { id: 'moral', name: 'ด้านคุณธรรม จริยธรรมและค่านิยม', code: 'C1', max: 5, weight: 25, indicators: ['ระเบียบวินัยและการตรงต่อเวลา', 'ความรับผิดชอบและความซื่อสัตย์', 'จรรยาบรรณวิชาชีพ', 'จิตสาธารณะและการทำงานร่วมกับผู้อื่น'] },
+      { id: 'knowledge', name: 'ด้านความรู้', code: 'C2', max: 5, weight: 25, indicators: ['หลักการและทฤษฎีในงานอาชีพ', 'ความรู้ด้านความปลอดภัยและสิ่งแวดล้อม', 'ข้อเท็จจริงและเทคโนโลยีเฉพาะทาง'] },
+      { id: 'skills', name: 'ด้านทักษะ', code: 'C3', max: 5, weight: 25, indicators: ['ทักษะการปฏิบัติงานตามมาตรฐาน', 'กระบวนการทำงานและการแก้ปัญหาเฉพาะหน้า', 'การใช้เครื่องมือและเทคโนโลยีสมัยใหม่'] },
+      { id: 'responsibility', name: 'ด้านการประยุกต์ใช้และความรับผิดชอบ', code: 'C4', max: 5, weight: 25, indicators: ['การบูรณาการแก้ปัญหาในสถานการณ์จริง', 'การตัดสินใจและวางแผนงาน', 'ความรับผิดชอบต่อคุณภาพผลงาน'] }
+    ];
+
+    // Default System State
+    const defaultData = {
+      currentUserRole: 'student', // student | teacher | trainer | executive | admin
+      currentUserId: 'std_01',
+      activeTab: 'overview',
+      gasUrl: localStorage.getItem('dve_gas_url') || '',
+      
+      // Users Table
+      users: [
+        { id: 'std_01', name: 'นายสมชาย ใจมั่นคง', role: 'student', code: '66301010023', dept: 'สาขาวิชาช่างไฟฟ้ากำลัง (ปวส.)', enterpriseId: 'ent_01', teacherId: 'tch_01', trainerId: 'trn_01', phone: '081-234-5678', email: 'somchai@dve.edu' },
+        { id: 'std_02', name: 'นางสาวกานดา สุขสวัสดิ์', role: 'student', code: '66301010045', dept: 'สาขาวิชาอิเล็กทรอนิกส์ (ปวส.)', enterpriseId: 'ent_02', teacherId: 'tch_01', trainerId: 'trn_02', phone: '082-345-6789', email: 'kanda@dve.edu' },
+        { id: 'tch_01', name: 'ครูสมปอง วิเชียรศรี', role: 'teacher', dept: 'แผนกวิชาช่างไฟฟ้ากำลัง', phone: '089-111-2222', email: 'sompong@dve.edu' },
+        { id: 'trn_01', name: 'นายวิชัย รุ่งอรุณ (ครูฝึกชำนาญการ)', role: 'trainer', enterpriseId: 'ent_01', phone: '086-333-4444', email: 'wichai@scg-training.com' },
+        { id: 'trn_02', name: 'นายเกรียงไกร ช่างฝีมือ', role: 'trainer', enterpriseId: 'ent_02', phone: '085-555-6666', email: 'krieng@denso.co.th' },
+        { id: 'exe_01', name: 'ดร.ธนกร ศิลปศาสตร์ (ผู้อำนวยการ)', role: 'executive', phone: '081-999-8888', email: 'director@dve.edu' },
+        { id: 'adm_01', name: 'นายอนุชา ระบบสารสนเทศ', role: 'admin', phone: '080-000-1111', email: 'admin@dve.edu' }
+      ],
+
+      // Enterprises Table (สถานประกอบการ)
+      enterprises: [
+        { id: 'ent_01', name: 'บจก. ปูนซิเมนต์ไทย (แก่งคอย)', branch: 'สระบุรี', address: '1 หมู่ 7 ต.บ้านป่า อ.แก่งคอย จ.สระบุรี', contact: '036-240-000', trainerCount: 4, studentCount: 8, status: 'MOU Active' },
+        { id: 'ent_02', name: 'บจก. เด็นโซ่ (ประเทศไทย)', branch: 'สมุทรปราการ', address: '369 หมู่ 3 นิคมอุตสาหกรรมบางพลี', contact: '02-315-9500', trainerCount: 3, studentCount: 5, status: 'MOU Active' },
+        { id: 'ent_03', name: 'บจก. ไทยน้ำทิพย์ คอร์ปอเรชั่น', branch: 'ปทุมธานี', address: '99 หมู่ 1 ต.เชียงรากน้อย อ.สามโคก', contact: '02-955-0777', trainerCount: 2, studentCount: 4, status: 'MOU Active' }
+      ],
+
+      // Training Plans & Units Table (แผนการฝึก + แบ่งหน่วยสอน)
+      trainingPlans: [
+        { id: 'tp_01', courseCode: '30104-5101', courseName: 'การปฏิบัติงานระบบไฟฟ้าในอุตสาหกรรม 1', totalHours: 720, credits: 4, units: [
+          { unitNo: 1, name: 'การเตรียมความพร้อมและความปลอดภัยในการทำงานระบบไฟฟ้า', hours: 60 },
+          { unitNo: 2, name: 'การบำรุงรักษาเชิงป้องกันตู้สวิตช์บอร์ดและมอเตอร์อุตสาหกรรม', hours: 240 },
+          { unitNo: 3, name: 'การเขียนโปรแกรมควบคุม PLC และระบบอินเวอร์เตอร์', hours: 240 },
+          { unitNo: 4, name: 'การทดสอบ การแก้ไขข้อบกพร่อง และประเมินความปลอดภัย', hours: 180 }
+        ]}
+      ],
+
+      // Daily Attendance Table (การลงเวลาเข้า-ออก)
+      attendance: [
+        { id: 'att_01', studentId: 'std_01', date: '2026-10-24', clockIn: '07:54:12', clockOut: '17:05:30', status: 'normal', location: '14.5824, 101.0021 (สำนักงานโรงงาน SCG)', note: 'เข้างานตรงเวลา' },
+        { id: 'att_02', studentId: 'std_01', date: '2026-10-23', clockIn: '07:50:04', clockOut: '17:15:10', status: 'normal', location: '14.5824, 101.0021', note: 'ปฏิบัติงานตรวจเช็กตู้ MDB' },
+        { id: 'att_03', studentId: 'std_01', date: '2026-10-22', clockIn: '08:12:00', clockOut: '17:00:20', status: 'late', location: '14.5824, 101.0021', note: 'สาย 12 นาที เนื่องจากฝนตกหนัก' }
+      ],
+
+      // Daily Journal Reports (บันทึกกิจกรรมประจำวัน + การตรวจของครูฝึก)
+      dailyReports: [
+        { 
+          id: 'jr_01', 
+          studentId: 'std_01', 
+          date: '2026-10-24', 
+          unitNo: 2, 
+          topic: 'การเปลี่ยนลูกปืนและตรวจวัดกระแสเหนี่ยวนำของมอเตอร์ 3 เฟส 15kW',
+          description: 'ร่วมกับพี่เลี้ยงทีมซ่อมบำรุง ดำเนินการ Overhaul มอเตอร์สายพานลำเลียง ถอดประกอบ วัดค่า Insulation Resistance และทดสอบเดินเครื่องตัวเปล่า',
+          problems: 'พบตลับลูกปืนฝั่ง Drive End มีเสียงรบกวนเนื่องจากจาระบีแห้ง',
+          solutions: 'ทำการล้างทำความสะอาด เปลี่ยน Bearing ตัวใหม่เบอร์ 6310 C3 และอัดจาระบีสังเคราะห์ตามสเปก',
+          knowledgeGained: 'เข้าใจการใช้พูลเลอร์ไฮดรอลิกดูดลูกปืน และการคำนวณปริมาณจาระบีที่ถูกต้อง',
+          trainerScore: 5,
+          trainerComment: 'ทำงานละเอียดรอบคอบ สวมใส่อุปกรณ์ PPE ครบถ้วนตามมาตรฐานความปลอดภัย',
+          trainerStatus: 'approved',
+          imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'
+        },
+        { 
+          id: 'jr_02', 
+          studentId: 'std_01', 
+          date: '2026-10-23', 
+          unitNo: 3, 
+          topic: 'การต่อสายโมดูล Analog Input ของ PLC Siemens S7-1200 เพื่อรับค่า Sensor',
+          description: 'เดินสายสัญญาณ Shielded Cable จาก Temperature Transmitter 4-20mA เข้าการ์ด AI ของ PLC และปรับ Scale ค่าใน TIA Portal',
+          problems: 'สัญญาณ Analog มีสัญญาณรบกวนแกว่งไปมา',
+          solutions: 'ต่อสาย Ground Shield เข้ากับกราวด์บัสบาร์ของตู้คอนโทรลเพียงด้านเดียวเพื่อตัด Ground Loop',
+          knowledgeGained: 'ได้เรียนรู้เทคนิคการต่อกราวด์สายสัญญาณและฟังก์ชัน NORM_X, SCALE_X ใน PLC',
+          trainerScore: 4.5,
+          trainerComment: 'แก้ปัญหาเฉพาะหน้าเรื่อง Noise ได้ดีมาก มีความเข้าใจทฤษฎี',
+          trainerStatus: 'approved',
+          imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80'
+        }
+      ],
+
+      // Supervising Teacher Scores (คะแนนนิเทศ 4 กรอบมาตรฐาน & Slider 0-5)
+      supervisionScores: [
+        {
+          studentId: 'std_01',
+          teacherId: 'tch_01',
+          visitDate: '2026-10-20',
+          visitNo: 2,
+          scores: {
+            // ด้าน 1 คุณธรรม จริยธรรม (เต็ม 5)
+            c1_discipline: 4.8,
+            c1_responsibility: 4.9,
+            c1_ethics: 4.8,
+            c1_public_mind: 4.7,
+            // ด้าน 2 ความรู้ (เต็ม 5)
+            c2_theory: 4.5,
+            c2_safety: 4.8,
+            c2_techno: 4.2,
+            // ด้าน 3 ทักษะ (เต็ม 5)
+            c3_skill_standard: 4.6,
+            c3_process_solving: 4.4,
+            c3_tool_usage: 4.7,
+            // ด้าน 4 การประยุกต์ใช้และความรับผิดชอบ (เต็ม 5)
+            c4_integration: 4.3,
+            c4_decision_making: 4.1,
+            c4_responsibility_output: 4.6
+          },
+          summaryNote: 'นักศึกษาพัฒนาการดีเด่น สถานประกอบการชื่นชมในความขยันและการตรงต่อเวลา มีทักษะการปฏิบัติงานที่ประยุกต์เข้ากับงานจริงได้ยอดเยี่ยม'
+        },
+        {
+          studentId: 'std_02',
+          teacherId: 'tch_01',
+          visitDate: '2026-10-18',
+          visitNo: 1,
+          scores: {
+            c1_discipline: 4.0, c1_responsibility: 4.0, c1_ethics: 4.2, c1_public_mind: 4.0,
+            c2_theory: 3.5, c2_safety: 4.0, c2_techno: 3.2,
+            c3_skill_standard: 3.6, c3_process_solving: 2.8, c3_tool_usage: 3.8, // ข้อนี้ < 3.0 trigger ซ่อมเสริม
+            c4_integration: 3.0, c4_decision_making: 2.7, c4_responsibility_output: 3.5  // ข้อนี้ < 3.0 trigger ซ่อมเสริม
+          },
+          summaryNote: 'มีความตั้งใจดี แต่ยังต้องเพิ่มความมั่นใจในการวิเคราะห์และแก้ไขวงจรควบคุมสัญญาณดิจิทัล'
+        }
+      ],
+
+      // Remedial Sessions (สอนซ่อมเสริมเมื่อคะแนนรายข้อ < 3.0)
+      remedialSessions: [
+        {
+          id: 'rem_01',
+          studentId: 'std_02',
+          skillArea: 'c3_process_solving (กระบวนการทำงานและการแก้ปัญหาเฉพาะหน้า)',
+          triggerScore: 2.8,
+          status: 'completed',
+          assignedTeacher: 'ครูสมปอง วิเชียรศรี',
+          topic: 'การวิเคราะห์หาสาเหตุอาการเสีย (Fault Finding) ในวงจรคอนโทรลเลอร์',
+          sessionDate: '2026-10-22',
+          resultScore: 4.0,
+          notes: 'ผ่านการทดสอบซ่อมเสริมปฏิบัติการวิเคราะห์สัญญาณเสร็จสิ้น'
+        },
+        {
+          id: 'rem_02',
+          studentId: 'std_02',
+          skillArea: 'c4_decision_making (การตัดสินใจและวางแผนงาน)',
+          triggerScore: 2.7,
+          status: 'scheduled',
+          assignedTeacher: 'ครูสมปอง วิเชียรศรี',
+          topic: 'การวางผัง Flowchart และจำลองสถานการณ์การควบคุมคุณภาพ',
+          sessionDate: '2026-10-28',
+          resultScore: null,
+          notes: 'นัดหมายเรียนออนไลน์ผ่าน Google Meet เสริมทักษะ'
+        }
+      ],
+
+      // Student e-Portfolios Table
+      portfolios: [
+        {
+          id: 'port_01',
+          studentId: 'std_01',
+          title: 'โครงการพัฒนาระบบควบคุมสายพานลำเลียงอัตโนมัติด้วย PLC & Inverter',
+          category: 'ชิ้นงาน/โครงงาน',
+          date: '2026-10-15',
+          standardFramework: 'ด้านทักษะ',
+          description: 'ร่วมออกแบบและติดตั้งตู้คอนโทรลสายพานลำเลียงในโรงงาน ลดพลังงานสูญเปล่าได้ 18% พร้อมเขียนคู่มือการบำรุงรักษาเชิงรุก',
+          imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+          fileUrl: 'https://drive.google.com/open?id=demo_scg_project_doc',
+          likes: 12
+        },
+        {
+          id: 'port_02',
+          studentId: 'std_01',
+          title: 'เกียรติบัตรรางวัลรองชนะเลิศอันดับ 1 ทักษะการเขียนโปรแกรม PLC ระดับภาค',
+          category: 'รางวัล/เกียรติบัตร',
+          date: '2026-08-20',
+          standardFramework: 'ด้านความรู้',
+          description: 'ตัวแทนสถานศึกษาเข้าแข่งขันทักษะวิชาชีพ ช่างไฟฟ้ากำลัง การแข่งขันระดับภาคกลาง ประจำปีการศึกษา 2567',
+          imageUrl: 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?auto=format&fit=crop&w=600&q=80',
+          fileUrl: 'https://drive.google.com/open?id=demo_cert_plc',
+          likes: 24
+        },
+        {
+          id: 'port_03',
+          studentId: 'std_01',
+          title: 'กิจกรรมจิตอาสาบริการสังคม "ตรวจเช็กระบบไฟฟ้าบ้านพักคนชราสระบุรี"',
+          category: 'กิจกรรม',
+          date: '2026-09-05',
+          standardFramework: 'ด้านคุณธรรม จริยธรรมฯ',
+          description: 'ร่วมกับแผนกวิชาบริการเปลี่ยนหลอดไฟ LED และตรวจวัดสายดิน เพื่อความปลอดภัยของผู้สูงอายุในชุมชน',
+          imageUrl: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=600&q=80',
+          fileUrl: '',
+          likes: 19
+        }
+      ],
+
+      // Scholarships Consideration Table (Special Feature 1: พิจารณาทุน + ไฟล์แนบประกอบ)
+      scholarships: [
+        {
+          id: 'sch_01',
+          studentId: 'std_01',
+          scholarshipName: 'ทุนการศึกษาทวิภาคีส่งเสริมอาชีพเพื่อเยาวชน (SCG Foundation)',
+          academicYear: '2567',
+          annualIncome: 84000,
+          fatherJob: 'รับจ้างทั่วไป (รายวัน)',
+          motherJob: 'แม่บ้าน',
+          reasons: 'ครอบครัวมีฐานะยากจน บิดามารดามีภาระส่งเสียน้องอีก 2 คน ตนเองมีความตั้งใจเรียนในระบบทวิภาคีเพื่อแบ่งเบาภาระครอบครัวและนำความรู้มาประกอบอาชีพวิศวกรไฟฟ้า',
+          status: 'approved', // pending | approved | rejected
+          approvedAmount: 20000,
+          interviewScore: 96,
+          committeeNotes: 'เอกสารหลักฐานครบถ้วน มีความประพฤติดีเด่น สถานประกอบการรับรองความขยันหมั่นเพียรและผลการเรียนเฉลี่ย 3.65',
+          evaluatedDate: '2026-10-21',
+          documents: [
+            {
+              docType: 'หนังสือรับรองรายได้ครอบครัว',
+              fileName: 'income_cert_somchai.pdf',
+              previewUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_income_cert/view',
+              fileSize: '1.2 MB'
+            },
+            {
+              docType: 'ภาพถ่ายที่อยู่อาศัยและสภาพครอบครัว',
+              fileName: 'home_photo_somchai.jpg',
+              previewUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_home_photo/view',
+              fileSize: '3.4 MB'
+            },
+            {
+              docType: 'หนังสือรับรองการฝึกอาชีพจากสถานประกอบการ',
+              fileName: 'scg_mentor_endorsement.pdf',
+              previewUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_mentor_endorse/view',
+              fileSize: '850 KB'
+            },
+            {
+              docType: 'สำเนาบัตรประจำตัวประชาชนและใบรายงานผลการเรียน',
+              fileName: 'somchai_id_transcript.pdf',
+              previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_transcript/view',
+              fileSize: '2.1 MB'
+            }
+          ]
+        },
+        {
+          id: 'sch_02',
+          studentId: 'std_02',
+          scholarshipName: 'ทุนสงเคราะห์การศึกษาพัฒนาช่างเทคนิคสตรี',
+          academicYear: '2567',
+          annualIncome: 96000,
+          fatherJob: 'ทำไร่/เกษตรกร',
+          motherJob: 'ค้าขายในหมู่บ้าน',
+          reasons: 'รายได้ภาคเกษตรไม่แน่นอน ต้องการทุนช่วยสนับสนุนค่าเดินทางและค่าอุปกรณ์เครื่องมือช่างอิเล็กทรอนิกส์ในระหว่างฝึกงานทวิภาคี',
+          status: 'pending',
+          approvedAmount: 0,
+          interviewScore: 82,
+          committeeNotes: 'อยู่ระหว่างตรวจสอบหนังสือรับรองรายได้จากผู้นำชุมชนเพิ่มเติม',
+          evaluatedDate: null,
+          documents: [
+            {
+              docType: 'หนังสือรับรองรายได้ผู้ปกครอง',
+              fileName: 'kanda_income.pdf',
+              previewUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_kanda_income/view',
+              fileSize: '950 KB'
+            },
+            {
+              docType: 'ภาพถ่ายสภาพบ้านพักอาศัย',
+              fileName: 'kanda_house.jpg',
+              previewUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_kanda_house/view',
+              fileSize: '2.8 MB'
+            },
+            {
+              docType: 'สำเนาบัตรประชาชนและเอกสารสถานศึกษา',
+              fileName: 'kanda_docs.pdf',
+              previewUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=700&q=80',
+              driveUrl: 'https://drive.google.com/file/d/demo_kanda_docs/view',
+              fileSize: '1.5 MB'
+            }
+          ]
+        }
+      ]
+    };
+
+    // Load data from LocalStorage or Fallback to defaultData
+    let appState = null;
+    try {
+      const saved = localStorage.getItem('dve_system_data_v1');
+      if (saved) {
+        appState = JSON.parse(saved);
+      } else {
+        appState = JSON.parse(JSON.stringify(defaultData));
+        saveState();
+      }
+    } catch (e) {
+      console.warn('Fallback to defaultData:', e);
+      appState = JSON.parse(JSON.stringify(defaultData));
+    }
+
+    // ------------------------------------------------------------------------
+    // 2. Real-time Reactive Engine & Google Sheets / Google Drive Integration
+    // ------------------------------------------------------------------------
+    function saveState() {
+      try {
+        localStorage.setItem('dve_system_data_v1', JSON.stringify(appState));
+        
+        // Trigger auto background sync to Google Sheets if GAS URL configured
+        if (appState.gasUrl && appState.gasUrl.startsWith('http')) {
+          syncToGoogleSheetsAsync();
+        }
+      } catch (err) {
+        console.error('Save state error:', err);
+      }
+    }
+
+    // Async sync to Google Sheets without blocking UI
+    let syncTimeout = null;
+    function syncToGoogleSheetsAsync() {
+      if (syncTimeout) clearTimeout(syncTimeout);
+      syncTimeout = setTimeout(async () => {
+        try {
+          updateCloudBadge('syncing');
+          const payload = {
+            action: 'syncAll',
+            data: {
+              Students: appState.users.filter(u => u.role === 'student'),
+              Enterprises: appState.enterprises,
+              TrainingPlans: appState.trainingPlans,
+              Attendance: appState.attendance,
+              DailyReports: appState.dailyReports,
+              Supervisions: appState.supervisionScores,
+              Portfolios: appState.portfolios,
+              Scholarships: appState.scholarships,
+              RemedialSessions: appState.remedialSessions
+            }
+          };
+
+          const resp = await fetch(appState.gasUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Standard Google Apps Script Web App CORS bypass
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          updateCloudBadge('connected');
+        } catch (e) {
+          console.warn('Cloud sync error (fallback active):', e);
+          updateCloudBadge('local');
+        }
+      }, 1200);
+    }
+
+    function updateCloudBadge(status) {
+      const label = document.getElementById('cloudStatusLabel');
+      if (!label) return;
+      if (status === 'syncing') {
+        label.innerText = 'Syncing...';
+      } else if (status === 'connected') {
+        label.innerText = 'Cloud Active';
+      } else {
+        label.innerText = 'Local DB';
+      }
+    }
+
+    function showToast(title, message, icon = 'fa-circle-check', isError = false) {
+      const toast = document.getElementById('toastNotification');
+      const titleEl = document.getElementById('toastTitle');
+      const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+
+      if (!toast) return;
+      titleEl.innerText = title;
+      msgEl.innerText = message;
+      iconEl.className = `fa-solid ${icon} ${isError ? 'text-rose-400' : 'text-emerald-400'} text-lg`;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2800);
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. Role Management & Navigation Control
+    // ------------------------------------------------------------------------
+    function switchRole(newRole) {
+      appState.currentUserRole = newRole;
+      
+      // Update Current User profile based on selected role
+      const user = appState.users.find(u => u.role === newRole) || appState.users[0];
+      appState.currentUserId = user.id;
+
+      // Update Header Avatar & Info
+      const avatarEl = document.getElementById('userAvatar');
+      const nameEl = document.getElementById('userNameHeader');
+      const roleEl = document.getElementById('userRoleHeader');
+      
+      if (avatarEl) avatarEl.innerText = user.name.charAt(0);
+      if (nameEl) nameEl.innerText = user.name;
+      if (roleEl) {
+        const roleLabels = {
+          student: 'นักศึกษา ปวส. 2567',
+          teacher: 'ครูนิเทศประจำวิทยาลัย',
+          trainer: 'ครูฝึกประจำสถานประกอบการ',
+          executive: 'ผู้บริหารสถานศึกษา',
+          admin: 'ผู้ดูแลระบบสารสนเทศ'
+        };
+        roleEl.innerText = `${roleLabels[newRole]} | ${user.dept || ''}`;
+      }
+
+      // Default Tab for the role
+      if (newRole === 'student') appState.activeTab = 'overview';
+      else if (newRole === 'teacher') appState.activeTab = 'supervision';
+      else if (newRole === 'trainer') appState.activeTab = 'trainer_review';
+      else if (newRole === 'executive') appState.activeTab = 'exec_dashboard';
+      else if (newRole === 'admin') appState.activeTab = 'admin_mgmt';
+
+      renderNavTabs();
+      renderCurrentTab();
+      showToast('เปลี่ยนบทบาทสำเร็จ', `ขณะนี้ใช้งานในสิทธิ์: ${document.getElementById('roleSelector').options[document.getElementById('roleSelector').selectedIndex].text}`);
+    }
+
+    function renderNavTabs() {
+      const container = document.getElementById('navTabsContainer');
+      if (!container) return;
+
+      const role = appState.currentUserRole;
+      let tabs = [];
+
+      if (role === 'student') {
+        tabs = [
+          { id: 'overview', icon: 'fa-chart-pie', label: 'ผลประเมิน & เรดาร์ชาร์ต' },
+          { id: 'attendance', icon: 'fa-user-clock', label: 'ลงเวลาเข้า-ออกงาน' },
+          { id: 'daily_journal', icon: 'fa-book-open', label: 'บันทึกประจำวัน' },
+          { id: 'portfolio', icon: 'fa-briefcase', label: 'แฟ้มผลงาน e-Portfolio' },
+          { id: 'online_remedial', icon: 'fa-laptop-code', label: 'เรียนออนไลน์ & ซ่อมเสริม' },
+          { id: 'scholarship_apply', icon: 'fa-hand-holding-dollar', label: 'ยื่นขอทุนการศึกษา' },
+          { id: 'print_certificate', icon: 'fa-certificate', label: 'ใบรับรองการฝึก (PDF)' }
+        ];
+      } else if (role === 'teacher') {
+        tabs = [
+          { id: 'supervision', icon: 'fa-clipboard-check', label: 'บันทึกคะแนนนิเทศ (0-5)' },
+          { id: 'supervision_reports', icon: 'fa-file-lines', label: 'รายงานผลการนิเทศ' },
+          { id: 'scholarship_review', icon: 'fa-file-shield', label: 'พิจารณาทุน (ตรวจเอกสาร)' },
+          { id: 'remedial_monitor', icon: 'fa-graduation-cap', label: 'ติดตามการสอนซ่อมเสริม' },
+          { id: 'training_plans', icon: 'fa-list-check', label: 'แผนการฝึก & หน่วยสอน' }
+        ];
+      } else if (role === 'trainer') {
+        tabs = [
+          { id: 'trainer_review', icon: 'fa-check-double', label: 'ตรวจบันทึกประจำวัน' },
+          { id: 'trainer_attendance', icon: 'fa-clock', label: 'ตรวจเวลาปฏิบัติงาน' },
+          { id: 'trainer_competency', icon: 'fa-award', label: 'ประเมินสมรรถนะรายหน่วย' }
+        ];
+      } else if (role === 'executive') {
+        tabs = [
+          { id: 'exec_dashboard', icon: 'fa-chart-line', label: 'แดชบอร์ดสถิติภาพรวม' },
+          { id: 'exec_scholarship', icon: 'fa-sack-dollar', label: 'สรุปการจัดสรรทุน' },
+          { id: 'exec_enterprises', icon: 'fa-building', label: 'เครือข่ายสถานประกอบการ' },
+          { id: 'exec_reports', icon: 'fa-file-pdf', label: 'พิมพ์รายงานผู้บริหาร (PDF)' }
+        ];
+      } else if (role === 'admin') {
+        tabs = [
+          { id: 'admin_mgmt', icon: 'fa-database', label: 'จัดการระบบ & ผู้ใช้งาน' },
+          { id: 'admin_enterprises', icon: 'fa-city', label: 'จัดการสถานประกอบการ' },
+          { id: 'admin_courses', icon: 'fa-book-bookmark', label: 'จัดการหลักสูตร & เกณฑ์' },
+          { id: 'admin_permissions', icon: 'fa-shield-halved', label: 'ตารางสิทธิ์ 5 ระดับ' },
+          { id: 'cloud_config', icon: 'fa-cloud', label: 'เชื่อมต่อ Google Sheets & Drive' }
+        ];
+      }
+
+      container.innerHTML = tabs.map(tab => {
+        const isActive = appState.activeTab === tab.id;
+        return `
+          <button onclick="changeTab('${tab.id}')" class="flex items-center gap-2 px-3 py-2 rounded-lg transition whitespace-nowrap ${
+            isActive 
+              ? 'bg-brand-600 text-white shadow-sm font-bold' 
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
+          }">
+            <i class="fa-solid ${tab.icon}"></i>
+            <span>${tab.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function changeTab(tabId) {
+      if (tabId === 'cloud_config') {
+        openCloudModal();
+        return;
+      }
+      appState.activeTab = tabId;
+      renderNavTabs();
+      renderCurrentTab();
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. Content Renderers per Role & Tab
+    // ------------------------------------------------------------------------
+    function renderCurrentTab() {
+      const area = document.getElementById('tabContentArea');
+      if (!area) return;
+
+      const tab = appState.activeTab;
+
+      if (tab === 'overview') renderStudentOverview(area);
+      else if (tab === 'attendance') renderStudentAttendance(area);
+      else if (tab === 'daily_journal') renderStudentDailyJournal(area);
+      else if (tab === 'portfolio') renderStudentPortfolio(area);
+      else if (tab === 'online_remedial') renderStudentRemedialOnline(area);
+      else if (tab === 'scholarship_apply') renderStudentScholarshipApply(area);
+      else if (tab === 'print_certificate') renderStudentCertificate(area);
+      else if (tab === 'supervision') renderTeacherSupervision(area);
+      else if (tab === 'supervision_reports') renderTeacherSupervisionReports(area);
+      else if (tab === 'scholarship_review' || tab === 'exec_scholarship') renderScholarshipReviewModule(area);
+      else if (tab === 'remedial_monitor') renderRemedialMonitor(area);
+      else if (tab === 'training_plans') renderTrainingPlansView(area);
+      else if (tab === 'trainer_review') renderTrainerJournalReview(area);
+      else if (tab === 'trainer_attendance') renderTrainerAttendanceView(area);
+      else if (tab === 'trainer_competency') renderTrainerCompetencyView(area);
+      else if (tab === 'exec_dashboard') renderExecutiveDashboard(area);
+      else if (tab === 'exec_enterprises') renderExecutiveEnterprises(area);
+      else if (tab === 'exec_reports') renderExecutiveReports(area);
+      else if (tab === 'admin_mgmt') renderAdminManagement(area);
+      else if (tab === 'admin_enterprises') renderAdminEnterprises(area);
+      else if (tab === 'admin_courses') renderAdminCourses(area);
+      else if (tab === 'admin_permissions') renderAdminPermissions(area);
+      else renderStudentOverview(area);
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.1 Student: Overview & Radar Chart
+    // ------------------------------------------------------------------------
+    function renderStudentOverview(container) {
+      const student = appState.users.find(u => u.id === 'std_01');
+      const enterprise = appState.enterprises.find(e => e.id === student.enterpriseId);
+      const teacher = appState.users.find(u => u.id === student.teacherId);
+      const trainer = appState.users.find(u => u.id === student.trainerId);
+      const sup = appState.supervisionScores.find(s => s.studentId === student.id);
+
+      // Calculate Averages for 4 NQF Categories
+      const s = sup.scores;
+      const c1Avg = ((s.c1_discipline + s.c1_responsibility + s.c1_ethics + s.c1_public_mind) / 4).toFixed(2);
+      const c2Avg = ((s.c2_theory + s.c2_safety + s.c2_techno) / 3).toFixed(2);
+      const c3Avg = ((s.c3_skill_standard + s.c3_process_solving + s.c3_tool_usage) / 3).toFixed(2);
+      const c4Avg = ((s.c4_integration + s.c4_decision_making + s.c4_responsibility_output) / 3).toFixed(2);
+      const totalAvg = ((parseFloat(c1Avg) + parseFloat(c2Avg) + parseFloat(c3Avg) + parseFloat(c4Avg)) / 4).toFixed(2);
+
+      container.innerHTML = `
+        <!-- Student Info Header Card -->
+        <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          <div class="absolute right-0 top-0 bottom-0 opacity-10 flex items-center pr-10 pointer-events-none">
+            <i class="fa-solid fa-graduation-cap text-9xl"></i>
+          </div>
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 rounded-2xl bg-yellow-400 text-slate-900 flex items-center justify-center font-black text-2xl shadow-lg border-2 border-white/40">
+                ส
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xl font-bold">${student.name}</h2>
+                  <span class="text-xs bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-full">กำลังฝึกอาชีพ</span>
+                </div>
+                <p class="text-xs text-blue-200 mt-0.5">รหัสประจำตัว: ${student.code} | ${student.dept}</p>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-blue-100">
+                  <span><i class="fa-solid fa-building text-yellow-300 mr-1"></i> ${enterprise.name}</span>
+                  <span><i class="fa-solid fa-chalkboard-user text-sky-300 mr-1"></i> ครูนิเทศ: ${teacher.name}</span>
+                  <span><i class="fa-solid fa-user-gear text-emerald-300 mr-1"></i> ครูฝึก: ${trainer.name}</span>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center min-w-[150px]">
+              <div class="text-[11px] text-blue-200 font-semibold">คะแนนประเมินรวมเฉลี่ย</div>
+              <div class="text-3xl font-black text-yellow-300">${totalAvg} <span class="text-sm font-normal text-white">/ 5.0</span></div>
+              <div class="text-[10px] text-emerald-300 mt-1 font-bold">ระดับยอดเยี่ยม (เกรด 4.0)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Standards & Radar Chart Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Radar Chart Box -->
+          <div class="lg:col-span-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <i class="fa-solid fa-chart-pie text-brand-600"></i>
+                  <span>กราฟเรดาร์ชาร์ต 4 กรอบมาตรฐานอาชีวศึกษา</span>
+                </h3>
+                <p class="text-xs text-slate-500">ผลการประเมินสมรรถนะวิชาชีพ ปวส. 2567 ตามกรอบคุณวุฒิแห่งชาติ</p>
+              </div>
+              <button onclick="window.print()" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-print"></i> พิมพ์
+              </button>
+            </div>
+            
+            <div class="relative w-full max-w-[380px] mx-auto my-auto aspect-square flex items-center justify-center">
+              <canvas id="studentRadarCanvas"></canvas>
+            </div>
+
+            <div class="text-center text-[11px] text-slate-400 mt-2">
+              * เกณฑ์มาตรฐานผ่านการประเมิน ต้องมีคะแนนไม่น้อยกว่า 3.00 ในทุกด้าน
+            </div>
+          </div>
+
+          <!-- 4 Framework Cards Breakdown -->
+          <div class="lg:col-span-6 space-y-3.5">
+            
+            <!-- C1 -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-brand-300 transition">
+              <div class="flex justify-between items-start">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-sky-100 text-brand-600 flex items-center justify-center font-bold text-xs">
+                    C1
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">ด้านคุณธรรม จริยธรรมและค่านิยม</h4>
+                    <p class="text-[11px] text-slate-500">ระเบียบวินัย, ความรับผิดชอบ, จรรยาบรรณวิชาชีพ, จิตสาธารณะ</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-base font-black text-brand-600">${c1Avg} <span class="text-xs font-normal text-slate-400">/ 5.0</span></div>
+                  <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">ดีเยี่ยม</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                <div class="bg-brand-500 h-1.5 rounded-full" style="width: ${(c1Avg/5)*100}%"></div>
+              </div>
+            </div>
+
+            <!-- C2 -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-300 transition">
+              <div class="flex justify-between items-start">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                    C2
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">ด้านความรู้</h4>
+                    <p class="text-[11px] text-slate-500">หลักการและทฤษฎี, ความปลอดภัย, เทคโนโลยีเฉพาะทาง</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-base font-black text-emerald-600">${c2Avg} <span class="text-xs font-normal text-slate-400">/ 5.0</span></div>
+                  <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">ดีมาก</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${(c2Avg/5)*100}%"></div>
+              </div>
+            </div>
+
+            <!-- C3 -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-amber-300 transition">
+              <div class="flex justify-between items-start">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    C3
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">ด้านทักษะ</h4>
+                    <p class="text-[11px] text-slate-500">การปฏิบัติงานตามมาตรฐาน, การแก้ปัญหาเฉพาะหน้า, การใช้เครื่องมือ</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-base font-black text-amber-600">${c3Avg} <span class="text-xs font-normal text-slate-400">/ 5.0</span></div>
+                  <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">ดีมาก</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                <div class="bg-amber-500 h-1.5 rounded-full" style="width: ${(c3Avg/5)*100}%"></div>
+              </div>
+            </div>
+
+            <!-- C4 -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-purple-300 transition">
+              <div class="flex justify-between items-start">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                    C4
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">ด้านการประยุกต์ใช้และความรับผิดชอบ</h4>
+                    <p class="text-[11px] text-slate-500">การบูรณาการแก้ปัญหา, การตัดสินใจและวางแผน, ความรับผิดชอบ</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-base font-black text-purple-600">${c4Avg} <span class="text-xs font-normal text-slate-400">/ 5.0</span></div>
+                  <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">ดีมาก</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                <div class="bg-purple-500 h-1.5 rounded-full" style="width: ${(c4Avg/5)*100}%"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Quick Summary Metrics Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+            <div class="text-xs text-slate-500 font-medium">ชั่วโมงฝึกสะสม</div>
+            <div class="text-2xl font-bold text-slate-800 mt-1">480 / 720</div>
+            <div class="text-[10px] text-emerald-600 mt-0.5"><i class="fa-solid fa-check"></i> เป็นไปตามแผนการฝึก</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+            <div class="text-xs text-slate-500 font-medium">บันทึกประจำวัน</div>
+            <div class="text-2xl font-bold text-slate-800 mt-1">${appState.dailyReports.length} รายการ</div>
+            <div class="text-[10px] text-emerald-600 mt-0.5"><i class="fa-solid fa-check"></i> ครูฝึกตรวจแล้ว 100%</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+            <div class="text-xs text-slate-500 font-medium">แฟ้มสะสมผลงาน</div>
+            <div class="text-2xl font-bold text-slate-800 mt-1">${appState.portfolios.length} ชิ้นงาน</div>
+            <div class="text-[10px] text-brand-600 mt-0.5"><i class="fa-solid fa-star"></i> ผลงานโดดเด่น 2 รายการ</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+            <div class="text-xs text-slate-500 font-medium">สถานะทุนการศึกษา</div>
+            <div class="text-xl font-bold text-emerald-600 mt-1">อนุมัติ 20,000฿</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">ทุนทวิภาคี SCG Foundation</div>
+          </div>
+        </div>
+      `;
+
+      // Draw Radar Chart with Chart.js
+      setTimeout(() => {
+        const ctx = document.getElementById('studentRadarCanvas');
+        if (!ctx) return;
+        new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: [
+              'ด้านคุณธรรม จริยธรรม (C1)',
+              'ด้านความรู้ (C2)',
+              'ด้านทักษะ (C3)',
+              'ด้านการประยุกต์ใช้ (C4)'
+            ],
+            datasets: [
+              {
+                label: 'คะแนนที่ได้',
+                data: [c1Avg, c2Avg, c3Avg, c4Avg],
+                backgroundColor: 'rgba(2, 132, 199, 0.25)',
+                borderColor: '#0284c7',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#0284c7',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#0284c7'
+              },
+              {
+                label: 'เกณฑ์มาตรฐานขั้นต่ำ (3.0)',
+                data: [3.0, 3.0, 3.0, 3.0],
+                backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                borderColor: '#f43f5e',
+                borderWidth: 1.5,
+                borderDash: [5, 5],
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+              r: {
+                min: 0,
+                max: 5,
+                ticks: { stepSize: 1, display: false },
+                grid: { color: '#e2e8f0' },
+                pointLabels: {
+                  font: { family: 'Sarabun', size: 11, weight: 'bold' },
+                  color: '#334155'
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { family: 'Sarabun', size: 11 } }
+              }
+            }
+          }
+        });
+      }, 50);
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.2 Student: Clock-In/Clock-Out with Live Interactive GPS
+    // ------------------------------------------------------------------------
+    function renderStudentAttendance(container) {
+      const today = new Date().toISOString().split('T')[0];
+      const hasClockedInToday = appState.attendance.some(a => a.studentId === 'std_01' && a.date === today && a.clockIn);
+      const todayRecord = appState.attendance.find(a => a.studentId === 'std_01' && a.date === today);
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Live Clock Punch Card -->
+          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+            <span class="text-xs bg-brand-50 text-brand-700 font-bold px-3 py-1 rounded-full mb-3 border border-brand-200">
+              <i class="fa-solid fa-location-dot mr-1"></i> พิกัดสถานประกอบการ: บจก. ปูนซิเมนต์ไทย (แก่งคอย)
+            </span>
+
+            <!-- Real-time Live Clock Display -->
+            <div class="text-4xl sm:text-5xl font-black text-slate-800 tracking-wider my-3" id="liveRealClock">
+              --:--:--
+            </div>
+            <div class="text-xs text-slate-500 font-medium" id="liveRealDate">
+              ${new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+
+            <!-- GPS Simulation Status -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-emerald-800 text-xs w-full my-5 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-satellite-dish text-emerald-600 animate-pulse"></i>
+              <span>สัญญาณ GPS พร้อม: อยู่ในรัศมีสถานประกอบการ (ระยะ 15 ม.)</span>
+            </div>
+
+            <!-- Punch In / Out Actions -->
+            <div class="w-full space-y-3">
+              ${!hasClockedInToday ? `
+                <button onclick="handleClockPunch('in')" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 text-sm transition transform active:scale-95">
+                  <i class="fa-solid fa-right-to-bracket text-base"></i>
+                  <span>กดลงเวลาเข้างาน (Clock In)</span>
+                </button>
+              ` : `
+                <div class="bg-brand-50 border border-brand-200 p-3 rounded-xl text-brand-800 text-xs font-bold flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-circle-check text-brand-600"></i>
+                  <span>ลงเวลาเข้างานแล้ว: ${todayRecord.clockIn} น.</span>
+                </div>
+                ${!todayRecord.clockOut ? `
+                  <button onclick="handleClockPunch('out')" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 flex items-center justify-center gap-2 text-sm transition transform active:scale-95">
+                    <i class="fa-solid fa-right-from-bracket text-base"></i>
+                    <span>กดลงเวลาออกงาน (Clock Out)</span>
+                  </button>
+                ` : `
+                  <div class="bg-slate-100 border border-slate-300 p-3 rounded-xl text-slate-700 text-xs font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-flag-checkered text-emerald-600"></i>
+                    <span>ลงเวลาออกงานแล้ว: ${todayRecord.clockOut} น. (ครบวัน)</span>
+                  </div>
+                `}
+              `}
+            </div>
+
+            <p class="text-[11px] text-slate-400 mt-4 leading-normal">
+              * ข้อมูลเวลาและพิกัดภูมิศาสตร์จะถูกประมวลผล Real-time ส่งไปยังครูฝึกและแดชบอร์ดผู้บริหารทันที
+            </p>
+          </div>
+
+          <!-- Attendance History Table -->
+          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+                <i class="fa-solid fa-calendar-check text-brand-600"></i>
+                <span>ประวัติการลงเวลาปฏิบัติงาน (Attendance History)</span>
+              </h3>
+              <button onclick="printAttendanceReport()" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-print"></i> พิมพ์ประวัติ (PDF)
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold">
+                    <th class="py-2.5 px-3">วันที่</th>
+                    <th class="py-2.5 px-3">เวลาเข้า</th>
+                    <th class="py-2.5 px-3">เวลาออก</th>
+                    <th class="py-2.5 px-3">สถานะ</th>
+                    <th class="py-2.5 px-3">พิกัด GPS / หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${appState.attendance.filter(a => a.studentId === 'std_01').map(att => `
+                    <tr class="hover:bg-slate-50/70 transition">
+                      <td class="py-3 px-3 font-semibold text-slate-800">${att.date}</td>
+                      <td class="py-3 px-3 text-emerald-700 font-bold">${att.clockIn || '-'}</td>
+                      <td class="py-3 px-3 text-rose-700 font-bold">${att.clockOut || '-'}</td>
+                      <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${
+                          att.status === 'normal' 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-amber-100 text-amber-800'
+                        }">
+                          ${att.status === 'normal' ? 'ตรงเวลา' : 'สาย'}
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-slate-500 text-[11px]">${att.note || att.location}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+      `;
+
+      // Realtime Clock Updater
+      startLiveClock();
+    }
+
+    let clockInterval = null;
+    function startLiveClock() {
+      if (clockInterval) clearInterval(clockInterval);
+      const update = () => {
+        const el = document.getElementById('liveRealClock');
+        if (el) {
+          const now = new Date();
+          el.innerText = now.toTimeString().split(' ')[0];
+        }
+      };
+      update();
+      clockInterval = setInterval(update, 1000);
+    }
+
+    function handleClockPunch(type) {
+      const today = new Date().toISOString().split('T')[0];
+      const nowTime = new Date().toTimeString().split(' ')[0];
+
+      let record = appState.attendance.find(a => a.studentId === 'std_01' && a.date === today);
+
+      if (type === 'in') {
+        if (!record) {
+          record = {
+            id: 'att_' + Date.now(),
+            studentId: 'std_01',
+            date: today,
+            clockIn: nowTime,
+            clockOut: null,
+            status: 'normal',
+            location: '14.5824, 101.0021 (สำนักงานโรงงาน SCG)',
+            note: 'เข้างานตรงเวลาด้วยระบบ Real-time Mobile'
+          };
+          appState.attendance.unshift(record);
+        } else {
+          record.clockIn = nowTime;
+        }
+        showToast('ลงเวลาเข้างานสำเร็จ', `บันทึกเวลา ${nowTime} น. เรียบร้อยแล้ว`);
+      } else {
+        if (record) {
+          record.clockOut = nowTime;
+          showToast('ลงเวลาออกงานสำเร็จ', `บันทึกเวลาเลิกงาน ${nowTime} น. เรียบร้อยแล้ว`);
+        }
+      }
+
+      saveState();
+      renderStudentAttendance(document.getElementById('tabContentArea'));
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.3 Student: Daily Journal (Add/Edit/Delete)
+    // ------------------------------------------------------------------------
+    function renderStudentDailyJournal(container) {
+      container.innerHTML = `
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-book-journal-whills text-brand-600"></i>
+              <span>บันทึกกิจกรรมประจำวัน (Daily Training Journal)</span>
+            </h3>
+            <p class="text-xs text-slate-500">บันทึกภาระงานที่ปฏิบัติ ปัญหาอุปสรรค และการประเมินจากครูฝึกสถานประกอบการ</p>
+          </div>
+          <button onclick="openAddJournalModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>เพิ่มบันทึกวันนี้</span>
+          </button>
+        </div>
+
+        <!-- Journal Cards List -->
+        <div class="space-y-4">
+          ${appState.dailyReports.map(jr => `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-brand-300 transition">
+              <div class="flex flex-col sm:flex-row justify-between items-start gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full">หน่วยสอนที่ ${jr.unitNo}</span>
+                    <h4 class="text-sm font-bold text-slate-800">${jr.topic}</h4>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-3">
+                    <span><i class="fa-regular fa-calendar mr-1"></i> วันที่ปฏิบัติงาน: ${jr.date}</span>
+                    <span><i class="fa-solid fa-building mr-1"></i> บจก. ปูนซิเมนต์ไทย (แก่งคอย)</span>
+                  </div>
+                </div>
+
+                <!-- Trainer Score & Status Badge -->
+                <div class="flex items-center gap-2">
+                  <div class="bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-right">
+                    <div class="text-[10px] text-emerald-800 font-bold">คะแนนจากครูฝึก</div>
+                    <div class="text-base font-black text-emerald-700">${jr.trainerScore} / 5.0 ⭐</div>
+                  </div>
+                  <button onclick="deleteJournal('${jr.id}')" class="text-slate-400 hover:text-rose-600 p-2 text-xs" title="ลบบันทึก">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Journal Content Body -->
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4 text-xs">
+                <div class="md:col-span-8 space-y-2.5">
+                  <div>
+                    <span class="font-bold text-slate-700">รายละเอียดงานที่ปฏิบัติ:</span>
+                    <p class="text-slate-600 mt-0.5 leading-relaxed">${jr.description}</p>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div class="bg-rose-50/60 p-2.5 rounded-lg border border-rose-100">
+                      <span class="font-bold text-rose-800 flex items-center gap-1">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ปัญหา/อุปสรรค:
+                      </span>
+                      <p class="text-slate-600 mt-0.5">${jr.problems || '-'}</p>
+                    </div>
+                    <div class="bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-100">
+                      <span class="font-bold text-emerald-800 flex items-center gap-1">
+                        <i class="fa-solid fa-lightbulb"></i> วิธีแก้ไขและการแก้ปัญหา:
+                      </span>
+                      <p class="text-slate-600 mt-0.5">${jr.solutions || '-'}</p>
+                    </div>
+                  </div>
+                  <div class="bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+                    <span class="font-bold text-blue-900 flex items-center gap-1">
+                      <i class="fa-solid fa-graduation-cap"></i> ความรู้และทักษะที่ได้รับ:
+                    </span>
+                    <p class="text-slate-600 mt-0.5">${jr.knowledgeGained || '-'}</p>
+                  </div>
+                  <!-- Trainer Comment Box -->
+                  <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-start gap-2">
+                    <i class="fa-solid fa-comment-dots text-brand-600 text-sm mt-0.5"></i>
+                    <div>
+                      <span class="font-bold text-slate-800">ความเห็นครูฝึก (นายวิชัย รุ่งอรุณ):</span>
+                      <p class="text-slate-600 mt-0.5 italic">"${jr.trainerComment || 'ตรวจรับรองเรียบร้อย'}"</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Attached Photo -->
+                <div class="md:col-span-4 flex flex-col items-center justify-center">
+                  ${jr.imageUrl ? `
+                    <div class="w-full h-44 rounded-xl overflow-hidden border border-slate-200 shadow-sm group relative">
+                      <img src="${jr.imageUrl}" alt="ภาพกิจกรรม" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                      <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <a href="${jr.imageUrl}" target="_blank" class="px-3 py-1 bg-white text-slate-900 rounded-lg font-bold text-xs">
+                          <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> ดูภาพขยาย
+                        </a>
+                      </div>
+                    </div>
+                  ` : `
+                    <div class="w-full h-36 bg-slate-100 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-400">
+                      <i class="fa-regular fa-image text-2xl mr-2"></i> ไม่มีรูปภาพแนบ
+                    </div>
+                  `}
+                </div>
+              </div>
+
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openAddJournalModal() {
+      const topic = prompt('หัวข้อกิจกรรมการปฏิบัติงาน:', 'การบำรุงรักษาและตรวจวัดค่าความต้านทานฉนวนมอเตอร์');
+      if (!topic) return;
+      const desc = prompt('รายละเอียดงานที่ปฏิบัติโดยย่อ:', 'ถอดประกอบชิ้นส่วน และใช้ Megger ตรวจวัดค่าความเป็นฉนวนไฟฟ้า');
+      
+      const newJr = {
+        id: 'jr_' + Date.now(),
+        studentId: 'std_01',
+        date: new Date().toISOString().split('T')[0],
+        unitNo: 2,
+        topic: topic,
+        description: desc || 'ปฏิบัติงานตามคำสั่งของพี่เลี้ยงประจำแผนกซ่อมบำรุง',
+        problems: 'ไม่มีปัญหาในการปฏิบัติงาน',
+        solutions: 'ปฏิบัติตามขั้นตอนความปลอดภัย',
+        knowledgeGained: 'ได้ฝึกฝนทักษะการใช้เครื่องมือวัดละเอียด',
+        trainerScore: 4.8,
+        trainerComment: 'บันทึกงานได้ดี มีความละเอียดรอบคอบ',
+        trainerStatus: 'approved',
+        imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'
+      };
+
+      appState.dailyReports.unshift(newJr);
+      saveState();
+      renderStudentDailyJournal(document.getElementById('tabContentArea'));
+      showToast('เพิ่มบันทึกสำเร็จ', 'ข้อมูลถูกบันทึกและส่งให้ครูฝึกตรวจแล้ว');
+    }
+
+    function deleteJournal(id) {
+      if (!confirm('ยืนยันการลบบันทึกประจำวันนี้?')) return;
+      appState.dailyReports = appState.dailyReports.filter(j => j.id !== id);
+      saveState();
+      renderStudentDailyJournal(document.getElementById('tabContentArea'));
+      showToast('ลบข้อมูลสำเร็จ', 'ลบบันทึกประจำวันเรียบร้อยแล้ว');
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.4 Student: e-Portfolio (CRUD + 4 Framework Categories)
+    // ------------------------------------------------------------------------
+    function renderStudentPortfolio(container) {
+      container.innerHTML = `
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-briefcase text-brand-600"></i>
+              <span>แฟ้มสะสมผลงานดิจิทัล (e-Portfolio)</span>
+            </h3>
+            <p class="text-xs text-slate-500">รวบรวมชิ้นงาน รางวัล และเกียรติประวัติ เชื่อมโยง 4 กรอบคุณวุฒิอาชีวศึกษาแห่งชาติ</p>
+          </div>
+          <button onclick="openAddPortfolioModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>เพิ่มผลงานใหม่</span>
+          </button>
+        </div>
+
+        <!-- Portfolio Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ${appState.portfolios.map(p => `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md hover:border-brand-300 transition">
+              <div>
+                <!-- Cover Image -->
+                <div class="h-44 w-full bg-slate-900 relative overflow-hidden group">
+                  <img src="${p.imageUrl}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                  <div class="absolute top-3 left-3">
+                    <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-brand-600 text-white shadow">
+                      ${p.category}
+                    </span>
+                  </div>
+                  <div class="absolute top-3 right-3">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-yellow-300 border border-yellow-400/40">
+                      ${p.standardFramework}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Card Content -->
+                <div class="p-5">
+                  <div class="text-[11px] text-slate-400 mb-1 flex items-center gap-1">
+                    <i class="fa-regular fa-calendar"></i> ${p.date}
+                  </div>
+                  <h4 class="font-bold text-sm text-slate-800 line-clamp-2 hover:text-brand-600 transition">
+                    ${p.title}
+                  </h4>
+                  <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-relaxed">
+                    ${p.description}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Card Footer Links -->
+              <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs">
+                ${p.fileUrl ? `
+                  <a href="${p.fileUrl}" target="_blank" class="text-brand-600 font-bold hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> ดูไฟล์แนบ
+                  </a>
+                ` : `
+                  <span class="text-slate-400 text-[11px]">ไม่มีไฟล์เอกสาร</span>
+                `}
+                <div class="flex items-center gap-2">
+                  <button onclick="deletePortfolio('${p.id}')" class="text-slate-400 hover:text-rose-600 p-1 text-xs" title="ลบผลงาน">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openAddPortfolioModal() {
+      const title = prompt('ชื่อผลงาน/โครงการ/เกียรติบัตร:', 'ระบบแจ้งเตือนการกินกระแสเกินผ่าน LINE Notify');
+      if (!title) return;
+      const cat = prompt('ประเภทผลงาน (ชิ้นงาน/โครงงาน, รางวัล/เกียรติบัตร, กิจกรรม, ผลงานเด่น):', 'ชิ้นงาน/โครงงาน');
+      const standard = prompt('เชื่อมโยงกรอบมาตรฐานใด (ด้านทักษะ, ด้านความรู้, ด้านคุณธรรม จริยธรรมฯ, ด้านการประยุกต์ใช้และความรับผิดชอบ):', 'ด้านทักษะ');
+
+      const newPort = {
+        id: 'port_' + Date.now(),
+        studentId: 'std_01',
+        title: title,
+        category: cat || 'ชิ้นงาน/โครงงาน',
+        date: new Date().toISOString().split('T')[0],
+        standardFramework: standard || 'ด้านทักษะ',
+        description: 'ผลงานที่คิดค้นขึ้นระหว่างการฝึกอาชีพในสถานประกอบการเพื่อแก้ปัญหาจริง',
+        imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80',
+        fileUrl: 'https://drive.google.com/open?id=demo_new_port_doc',
+        likes: 1
+      };
+
+      appState.portfolios.unshift(newPort);
+      saveState();
+      renderStudentPortfolio(document.getElementById('tabContentArea'));
+      showToast('เพิ่มแฟ้มผลงานสำเร็จ', 'ผลงานถูกเชื่อมโยงเข้าสู่ e-Portfolio แล้ว');
+    }
+
+    function deletePortfolio(id) {
+      if (!confirm('ยืนยันการลบผลงานนี้ออกจากแฟ้มสะสมผลงาน?')) return;
+      appState.portfolios = appState.portfolios.filter(p => p.id !== id);
+      saveState();
+      renderStudentPortfolio(document.getElementById('tabContentArea'));
+      showToast('ลบผลงานสำเร็จ', 'ลบรายการผลงานเรียบร้อยแล้ว');
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.5 Student: Online Courses & Remedial Sessions (ซ่อมเสริมอัตโนมัติ)
+    // ------------------------------------------------------------------------
+    function renderStudentRemedialOnline(container) {
+      container.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Online Training Modules -->
+          <div class="lg:col-span-7 space-y-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-brand-600"></i>
+                <span>หลักสูตรอบรมเตรียมความพร้อม & เรียนออนไลน์ (ปวส. 2567)</span>
+              </h3>
+              <p class="text-xs text-slate-500">บทเรียน e-Learning เพื่อเสริมสร้างทักษะความปลอดภัยและวิชาชีพ</p>
+            </div>
+
+            <div class="space-y-3">
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-shield-halved"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">มาตรฐานความปลอดภัยในโรงงานอุตสาหกรรม (Safety First)</h4>
+                    <p class="text-[11px] text-slate-400">หลักสูตรบังคับ 6 ชั่วโมง | ครูผู้สอน: ครูสมปอง วิเชียรศรี</p>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  <i class="fa-solid fa-check"></i> เรียนผ่านแล้ว (100%)
+                </span>
+              </div>
+
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-microchip"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-slate-800">การเขียนโปรแกรมควบคุม PLC ระดับก้าวหน้า</h4>
+                    <p class="text-[11px] text-slate-400">หลักสูตรเสริมสมรรถนะ 12 ชั่วโมง | แบบทดสอบ 4 หน่วย</p>
+                  </div>
+                </div>
+                <button onclick="alert('กำลังเปิดห้องเรียนออนไลน์ DVE e-Learning Module...')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold text-xs shadow">
+                  เข้าสู่บทเรียน
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Remedial Sessions Box (Auto-fed from score < 3.0) -->
+          <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-arrows-spin text-amber-500"></i>
+                <span>ตารางการสอนซ่อมเสริม (Remedial Sessions)</span>
+              </h3>
+              <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">ระบบอัตโนมัติ</span>
+            </div>
+            
+            <p class="text-[11px] text-slate-500 mb-4 leading-normal">
+              * เมื่อครูนิเทศบันทึกคะแนนตัวชี้วัดใดต่ำกว่า 3.0 ระบบจะดึงเข้าสู่รายการสอนซ่อมเสริมอัตโนมัติทันที
+            </p>
+
+            <div class="space-y-3">
+              ${appState.remedialSessions.map(rem => `
+                <div class="p-3.5 rounded-xl border ${
+                  rem.status === 'completed' 
+                    ? 'bg-slate-50 border-slate-200' 
+                    : 'bg-amber-50/70 border-amber-300'
+                }">
+                  <div class="flex justify-between items-start">
+                    <div class="font-bold text-xs text-slate-800">${rem.topic}</div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${
+                      rem.status === 'completed' 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : 'bg-amber-200 text-amber-900 animate-pulse'
+                    }">
+                      ${rem.status === 'completed' ? 'ซ่อมเสริมผ่านแล้ว' : 'รอดำเนินการ'}
+                    </span>
+                  </div>
+                  <div class="text-[11px] text-slate-500 mt-1">
+                    ทักษะที่ขาด: <span class="font-semibold text-rose-600">${rem.skillArea}</span> (คะแนนเดิม: ${rem.triggerScore})
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-1 flex justify-between">
+                    <span>ครูผู้สอน: ${rem.assignedTeacher}</span>
+                    <span>วันที่: ${rem.sessionDate}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.6 Student: Apply for Scholarship (Special Feature 1: ยื่นทุน + แนบไฟล์)
+    // ------------------------------------------------------------------------
+    function renderStudentScholarshipApply(container) {
+      const myScholarship = appState.scholarships.find(s => s.studentId === 'std_01');
+
+      container.innerHTML = `
+        <div class="max-w-4xl mx-auto space-y-6">
+          
+          <div class="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl p-6 text-white shadow-xl flex justify-between items-center">
+            <div>
+              <span class="text-xs bg-yellow-400 text-slate-900 font-extrabold px-2 py-0.5 rounded">ทุนการศึกษา ปวส. 2567</span>
+              <h2 class="text-xl font-bold mt-1">ระบบยื่นขอรับทุนการศึกษาและเงินอุดหนุนฝึกอาชีพ</h2>
+              <p class="text-xs text-emerald-200 mt-1">ส่งหลักฐานเอกสารประกอบการพิจารณาเข้าสู่ระบบ เพื่อให้คณะกรรมการตรวจประเมินแบบ Real-time</p>
+            </div>
+            <i class="fa-solid fa-hand-holding-dollar text-5xl opacity-30 hidden sm:block"></i>
+          </div>
+
+          ${myScholarship ? `
+            <!-- Current Scholarship Status Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100">
+                <div>
+                  <div class="text-xs text-slate-400">รายการทุนที่ยื่นขอ:</div>
+                  <h3 class="text-base font-bold text-slate-800">${myScholarship.scholarshipName}</h3>
+                </div>
+                <div>
+                  <span class="px-3 py-1 rounded-full text-xs font-bold ${
+                    myScholarship.status === 'approved' 
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                      : 'bg-amber-100 text-amber-800'
+                  }">
+                    ${myScholarship.status === 'approved' ? '✅ ผ่านการอนุมัติทุนแล้ว' : '⏳ อยู่ระหว่างการพิจารณา'}
+                  </span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-4 text-xs">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div class="text-slate-400 font-medium">วงเงินทุนที่ได้รับ</div>
+                  <div class="text-xl font-black text-emerald-600 mt-0.5">฿ ${myScholarship.approvedAmount.toLocaleString()}</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div class="text-slate-400 font-medium">คะแนนสัมภาษณ์/ความจำเป็น</div>
+                  <div class="text-xl font-black text-brand-600 mt-0.5">${myScholarship.interviewScore} / 100</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div class="text-slate-400 font-medium">ความเห็นคณะกรรมการ</div>
+                  <div class="text-xs font-semibold text-slate-700 mt-1 truncate">${myScholarship.committeeNotes}</div>
+                </div>
+              </div>
+
+              <!-- Attached Files Submitted -->
+              <div>
+                <h4 class="text-xs font-bold text-slate-700 mb-2">ไฟล์เอกสารแนบที่ส่งแล้ว:</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                  ${myScholarship.documents.map(d => `
+                    <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                      <div class="truncate mr-2">
+                        <div class="font-bold text-slate-800 truncate">${d.docType}</div>
+                        <div class="text-[10px] text-slate-400 truncate">${d.fileName}</div>
+                      </div>
+                      <button onclick="previewSpecificDoc('${d.previewUrl}', '${d.docType}', '${d.driveUrl}')" class="text-brand-600 hover:text-brand-800 font-bold text-xs" title="ดูไฟล์">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="mt-5 pt-4 border-t border-slate-100 flex justify-between items-center">
+                <button onclick="openScholarshipDocModalForApplicant('${myScholarship.id}')" class="text-xs font-bold text-brand-600 hover:underline flex items-center gap-1.5">
+                  <i class="fa-solid fa-folder-open"></i> เปิดดูเอกสารประกอบทั้งหมดแบบเต็มจอ
+                </button>
+                <button onclick="printScholarshipDocSummary()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
+                  <i class="fa-solid fa-print"></i> พิมพ์ใบรับรองทุน (PDF)
+                </button>
+              </div>
+
+            </div>
+          ` : `
+            <!-- Form to Apply -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-xs space-y-4">
+              <h3 class="font-bold text-sm text-slate-800">แบบฟอร์มยื่นขอรับทุนการศึกษา</h3>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">เลือกโครงการทุนที่ต้องการสมัคร</label>
+                <select class="w-full border border-slate-300 rounded-lg p-2 font-bold bg-white">
+                  <option>ทุนการศึกษาทวิภาคีส่งเสริมอาชีพเพื่อเยาวชน (SCG Foundation)</option>
+                  <option>ทุนสงเคราะห์การศึกษาช่วยเหลือค่าครองชีพนักศึกษาทวิภาคี</option>
+                  <option>ทุนพัฒนาบุคลากรด้านเทคโนโลยีระบบอัตโนมัติ</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">รายได้เฉลี่ยครอบครัวต่อปี (บาท)</label>
+                  <input type="number" class="w-full border border-slate-300 rounded-lg p-2" placeholder="เช่น 90000">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">อาชีพบิดา-มารดา/ผู้ปกครอง</label>
+                  <input type="text" class="w-full border border-slate-300 rounded-lg p-2" placeholder="เช่น รับจ้างทั่วไป / ค้าขาย">
+                </div>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">เหตุผลและความจำเป็นในการขอรับทุน</label>
+                <textarea rows="3" class="w-full border border-slate-300 rounded-lg p-2" placeholder="ระบุภาระค่าใช้จ่ายและเหตุผลความจำเป็น..."></textarea>
+              </div>
+              <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900">
+                <i class="fa-solid fa-upload mr-1"></i> แนบเอกสาร: สำเนาบัตรประชาชน, หนังสือรับรองรายได้, รูปถ่ายบ้านพัก, และหนังสือรับรองการฝึกงาน
+              </div>
+              <button onclick="alert('ยื่นคำขอและเชื่อมโยงไฟล์เข้าสู่ Google Drive เรียบร้อยแล้ว')" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow">
+                ส่งใบสมัครขอรับทุนการศึกษา
+              </button>
+            </div>
+          `}
+
+        </div>
+      `;
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.7 Teacher: Supervision Scoring (Slider 0-5 + Auto Save + Auto Remedial)
+    // ------------------------------------------------------------------------
+    function renderTeacherSupervision(container) {
+      const student = appState.users.find(u => u.id === 'std_01');
+      const sup = appState.supervisionScores.find(s => s.studentId === student.id);
+      const scores = sup.scores;
+
+      container.innerHTML = `
+        <div class="space-y-6">
+          
+          <!-- Teacher Scoring Header Bar -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <span class="text-xs bg-brand-100 text-brand-800 font-extrabold px-2.5 py-0.5 rounded-full">การนิเทศการฝึกอาชีพ ครั้งที่ 2</span>
+              <h2 class="text-lg font-bold text-slate-800 mt-1">ประเมินสมรรถนะนักศึกษา: ${student.name} (${student.code})</h2>
+              <p class="text-xs text-slate-500">สถานประกอบการ: บจก. ปูนซิเมนต์ไทย (แก่งคอย) | เลื่อนแถบสไลเดอร์ 0.0 - 5.0 (บันทึก Real-time อัตโนมัติ)</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <div class="text-right">
+                <div class="text-[11px] text-slate-400 font-semibold">คะแนนรวมเฉลี่ย 4 ด้าน</div>
+                <div class="text-2xl font-black text-brand-600" id="liveTeacherTotalScore">4.58 / 5.0</div>
+              </div>
+              <button onclick="printSupervisionReportPDF()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                <i class="fa-solid fa-print"></i> พิมพ์รายงานนิเทศ (PDF)
+              </button>
+            </div>
+          </div>
+
+          <!-- Alert for Auto-Remedial Trigger (< 3.0) -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-brand-600"></i>
+            <span><strong>ระบบตรวจจับอัตโนมัติ:</strong> หากตัวชี้วัดใดได้รับคะแนนต่ำกว่า 3.00 ระบบจะ Feed เข้าตารางสอนซ่อมเสริม (Remedial) และแจ้งเตือนทันที</span>
+          </div>
+
+          <!-- 4 Frameworks Evaluation Sections with Sliders -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Category 1 -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span class="w-6 h-6 rounded bg-sky-100 text-brand-600 font-bold text-xs flex items-center justify-center">C1</span>
+                <h4 class="font-bold text-xs text-slate-800">ด้านคุณธรรม จริยธรรมและค่านิยม (Moral & Ethics)</h4>
+              </div>
+              
+              ${renderScoreSliderItem('c1_discipline', 'ระเบียบวินัยและการตรงต่อเวลา', scores.c1_discipline)}
+              ${renderScoreSliderItem('c1_responsibility', 'ความรับผิดชอบและความซื่อสัตย์', scores.c1_responsibility)}
+              ${renderScoreSliderItem('c1_ethics', 'จรรยาบรรณวิชาชีพ', scores.c1_ethics)}
+              ${renderScoreSliderItem('c1_public_mind', 'จิตสาธารณะและการทำงานร่วมกับผู้อื่น', scores.c1_public_mind)}
+            </div>
+
+            <!-- Category 2 -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span class="w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center">C2</span>
+                <h4 class="font-bold text-xs text-slate-800">ด้านความรู้ (Knowledge)</h4>
+              </div>
+              
+              ${renderScoreSliderItem('c2_theory', 'หลักการและทฤษฎีในงานอาชีพ', scores.c2_theory)}
+              ${renderScoreSliderItem('c2_safety', 'ความรู้ด้านความปลอดภัยและสิ่งแวดล้อม', scores.c2_safety)}
+              ${renderScoreSliderItem('c2_techno', 'ข้อเท็จจริงและเทคโนโลยีเฉพาะทาง', scores.c2_techno)}
+            </div>
+
+            <!-- Category 3 -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span class="w-6 h-6 rounded bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center">C3</span>
+                <h4 class="font-bold text-xs text-slate-800">ด้านทักษะ (Practical Skills)</h4>
+              </div>
+              
+              ${renderScoreSliderItem('c3_skill_standard', 'ทักษะการปฏิบัติงานตามมาตรฐาน', scores.c3_skill_standard)}
+              ${renderScoreSliderItem('c3_process_solving', 'กระบวนการทำงานและการแก้ปัญหาเฉพาะหน้า', scores.c3_process_solving)}
+              ${renderScoreSliderItem('c3_tool_usage', 'การใช้เครื่องมือและเทคโนโลยีสมัยใหม่', scores.c3_tool_usage)}
+            </div>
+
+            <!-- Category 4 -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span class="w-6 h-6 rounded bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center">C4</span>
+                <h4 class="font-bold text-xs text-slate-800">ด้านการประยุกต์ใช้และความรับผิดชอบ (Application)</h4>
+              </div>
+              
+              ${renderScoreSliderItem('c4_integration', 'การบูรณาการแก้ปัญหาในสถานการณ์จริง', scores.c4_integration)}
+              ${renderScoreSliderItem('c4_decision_making', 'การตัดสินใจและวางแผนงาน', scores.c4_decision_making)}
+              ${renderScoreSliderItem('c4_responsibility_output', 'ความรับผิดชอบต่อคุณภาพผลงาน', scores.c4_responsibility_output)}
+            </div>
+
+          </div>
+
+          <!-- Supervision Notes Box -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <label class="block text-xs font-bold text-slate-800 mb-1.5">สรุปรายงานผลการนิเทศและข้อเสนอแนะในการพัฒนาสมรรถนะ</label>
+            <textarea id="supervisionSummaryInput" onchange="handleTeacherNoteChange(this.value)" rows="3" class="w-full text-xs border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-brand-500">${sup.summaryNote}</textarea>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function renderScoreSliderItem(key, label, value) {
+      return `
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-700 font-medium">${label}</span>
+            <span class="font-black text-sm ${value < 3.0 ? 'text-rose-600' : 'text-brand-600'}" id="val_${key}">${value.toFixed(1)}</span>
+          </div>
+          <input type="range" min="0" max="5" step="0.1" value="${value}" 
+            oninput="handleSliderScoreChange('${key}', this.value)"
+            class="range-slider w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+        </div>
+      `;
+    }
+
+    function handleSliderScoreChange(key, value) {
+      const valNum = parseFloat(value);
+      const displayEl = document.getElementById(`val_${key}`);
+      if (displayEl) {
+        displayEl.innerText = valNum.toFixed(1);
+        if (valNum < 3.0) {
+          displayEl.className = 'font-black text-sm text-rose-600 animate-bounce';
+        } else {
+          displayEl.className = 'font-black text-sm text-brand-600';
+        }
+      }
+
+      // Update in state
+      const sup = appState.supervisionScores.find(s => s.studentId === 'std_01');
+      if (sup) {
+        sup.scores[key] = valNum;
+
+        // Auto trigger remedial if < 3.0
+        if (valNum < 3.0) {
+          const exists = appState.remedialSessions.some(r => r.studentId === 'std_01' && r.skillArea.includes(key));
+          if (!exists) {
+            appState.remedialSessions.unshift({
+              id: 'rem_' + Date.now(),
+              studentId: 'std_01',
+              skillArea: key,
+              triggerScore: valNum,
+              status: 'scheduled',
+              assignedTeacher: 'ครูสมปอง วิเชียรศรี',
+              topic: `การสอนซ่อมเสริมทักษะเฉพาะทาง: ${key}`,
+              sessionDate: new Date().toISOString().split('T')[0],
+              resultScore: null,
+              notes: 'ระบบสร้างคาบสอนซ่อมเสริมอัตโนมัติเนื่องจากคะแนนต่ำกว่าเกณฑ์ 3.00'
+            });
+            showToast('ตรวจพบสมรรถนะต่ำกว่าเกณฑ์', `ระบบได้ส่งตัวชี้วัด ${key} เข้าสู่ตารางสอนซ่อมเสริมเรียบร้อยแล้ว`, 'fa-triangle-exclamation', true);
+          }
+        }
+      }
+
+      saveState();
+
+      // Recalculate Live Total
+      const s = sup.scores;
+      const vals = Object.values(s);
+      const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+      const totalEl = document.getElementById('liveTeacherTotalScore');
+      if (totalEl) totalEl.innerText = `${avg} / 5.0`;
+    }
+
+    function handleTeacherNoteChange(val) {
+      const sup = appState.supervisionScores.find(s => s.studentId === 'std_01');
+      if (sup) sup.summaryNote = val;
+      saveState();
+      showToast('บันทึกข้อเสนอแนะสำเร็จ', 'บันทึกรายงานการนิเทศเรียบร้อยแล้ว');
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.8 Special Feature 1: Scholarship Consideration & Attached Doc Viewer
+    // ------------------------------------------------------------------------
+    let currentViewingScholarship = null;
+
+    function renderScholarshipReviewModule(container) {
+      container.innerHTML = `
+        <div class="space-y-6">
+          
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <span class="text-xs bg-brand-100 text-brand-800 font-extrabold px-2.5 py-0.5 rounded-full">ระบบพิจารณาทุนการศึกษาทวิภาคี</span>
+              <h2 class="text-lg font-bold text-slate-800 mt-1">การพิจารณาจัดสรรทุนการศึกษา & ตรวจเอกสารแนบประกอบ</h2>
+              <p class="text-xs text-slate-500">คณะกรรมการสามารถตรวจดูไฟล์แนบ (สำเนาบัตร, หนังสือรับรองรายได้, รูปถ่ายสภาพครอบครัว) เพื่อประกอบการตัดสินใจ</p>
+            </div>
+            <button onclick="printScholarshipDocSummary()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-file-pdf"></i> พิมพ์สรุปผลพิจารณา (PDF)
+            </button>
+          </div>
+
+          <!-- Applicant Table -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+              <div class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-users-viewfinder text-brand-600"></i>
+                <span>รายชื่อนักศึกษาที่ยื่นขอรับทุนการศึกษา (ปีการศึกษา 2567)</span>
+              </div>
+              <span class="text-xs text-slate-500">ทั้งหมด ${appState.scholarships.length} รายการ</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-100/70 text-slate-600 border-b border-slate-200 font-bold">
+                    <th class="py-3 px-4">ชื่อ-สกุล นักศึกษา</th>
+                    <th class="py-3 px-4">ทุนที่ยื่นขอ</th>
+                    <th class="py-3 px-4">รายได้ครอบครัว/ปี</th>
+                    <th class="py-3 px-4">ไฟล์เอกสารแนบ</th>
+                    <th class="py-3 px-4">สถานะการพิจารณา</th>
+                    <th class="py-3 px-4">วงเงินอนุมัติ</th>
+                    <th class="py-3 px-4 text-center">การดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${appState.scholarships.map(sch => {
+                    const student = appState.users.find(u => u.id === sch.studentId) || {};
+                    return `
+                      <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3.5 px-4">
+                          <div class="font-bold text-slate-800">${student.name}</div>
+                          <div class="text-[11px] text-slate-400">${student.dept || 'ช่างไฟฟ้า'}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-medium text-slate-700 max-w-[200px] truncate" title="${sch.scholarshipName}">
+                          ${sch.scholarshipName}
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-rose-600">
+                          ฿ ${sch.annualIncome.toLocaleString()}
+                        </td>
+                        <td class="py-3.5 px-4">
+                          <button onclick="openScholarshipDocModalForApplicant('${sch.id}')" class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-bold text-[11px] border border-brand-200 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-paperclip"></i>
+                            <span>ดูไฟล์ (${sch.documents.length} รายการ)</span>
+                          </button>
+                        </td>
+                        <td class="py-3.5 px-4">
+                          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            sch.status === 'approved' 
+                              ? 'bg-emerald-100 text-emerald-800' 
+                              : sch.status === 'pending'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }">
+                            ${sch.status === 'approved' ? 'อนุมัติแล้ว' : sch.status === 'pending' ? 'รอพิจารณา' : 'ไม่อนุมัติ'}
+                          </span>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-emerald-700">
+                          ${sch.approvedAmount ? `฿ ${sch.approvedAmount.toLocaleString()}` : '-'}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                          <button onclick="openScholarshipDocModalForApplicant('${sch.id}')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1 mx-auto transition">
+                            <i class="fa-solid fa-gavel"></i>
+                            <span>พิจารณาทุน</span>
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }
+
+    function openScholarshipDocModalForApplicant(schId) {
+      const sch = appState.scholarships.find(s => s.id === schId);
+      if (!sch) return;
+      currentViewingScholarship = sch;
+      const student = appState.users.find(u => u.id === sch.studentId) || {};
+      const ent = appState.enterprises.find(e => e.id === student.enterpriseId) || { name: 'บจก. ปูนซิเมนต์ไทย (แก่งคอย)' };
+
+      // Set Header info
+      document.getElementById('docModalStudentName').innerText = `นักศึกษา: ${student.name} (${student.code || student.id}) | ${student.dept || ''}`;
+      document.getElementById('docModalIncome').innerText = `฿ ${sch.annualIncome.toLocaleString()} / ปี`;
+      document.getElementById('docModalEnterprise').innerText = ent.name;
+
+      // Populate file cards list
+      const fileContainer = document.getElementById('docModalFileList');
+      fileContainer.innerHTML = sch.documents.map((d, idx) => `
+        <div onclick="previewSpecificDoc('${d.previewUrl}', '${d.docType}', '${d.driveUrl}')" class="p-3 bg-white rounded-xl border border-slate-200 hover:border-brand-500 cursor-pointer transition shadow-sm group">
+          <div class="h-20 bg-slate-100 rounded-lg overflow-hidden mb-2 flex items-center justify-center">
+            <img src="${d.previewUrl}" alt="${d.docType}" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
+          </div>
+          <div class="font-bold text-[11px] text-slate-800 line-clamp-1">${d.docType}</div>
+          <div class="text-[10px] text-slate-400 mt-0.5 flex justify-between">
+            <span class="truncate">${d.fileName}</span>
+            <span>${d.fileSize}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Preview first document by default
+      if (sch.documents.length > 0) {
+        previewSpecificDoc(sch.documents[0].previewUrl, sch.documents[0].docType, sch.documents[0].driveUrl);
+      }
+
+      // Populate Form inputs
+      document.getElementById('evalDecisionSelect').value = sch.status;
+      document.getElementById('evalAmountInput').value = sch.approvedAmount || 15000;
+      document.getElementById('evalScoreInput').value = sch.interviewScore || 90;
+      document.getElementById('evalNotesInput').value = sch.committeeNotes || '';
+
+      document.getElementById('scholarshipDocModal').classList.remove('hidden');
+    }
+
+    function previewSpecificDoc(url, title, driveUrl) {
+      const img = document.getElementById('docViewerImage');
+      const titleEl = document.getElementById('docViewerTitle');
+      const driveBtn = document.getElementById('docViewerDriveBtn');
+      if (img) img.src = url;
+      if (titleEl) titleEl.innerText = `พรีวิวเอกสาร: ${title}`;
+      if (driveBtn) driveBtn.href = driveUrl || '#';
+    }
+
+    function closeScholarshipDocModal() {
+      document.getElementById('scholarshipDocModal').classList.add('hidden');
+    }
+
+    function saveScholarshipEvaluation() {
+      if (!currentViewingScholarship) return;
+      currentViewingScholarship.status = document.getElementById('evalDecisionSelect').value;
+      currentViewingScholarship.approvedAmount = parseFloat(document.getElementById('evalAmountInput').value) || 0;
+      currentViewingScholarship.interviewScore = parseInt(document.getElementById('evalScoreInput').value) || 0;
+      currentViewingScholarship.committeeNotes = document.getElementById('evalNotesInput').value;
+      currentViewingScholarship.evaluatedDate = new Date().toISOString().split('T')[0];
+
+      saveState();
+      closeScholarshipDocModal();
+      showToast('บันทึกผลการพิจารณาสำเร็จ', 'ระบบบันทึกผลและส่งข้อมูลเรียลไทม์เรียบร้อยแล้ว');
+      renderCurrentTab();
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.9 Trainer: Daily Journal Review & Scoring
+    // ------------------------------------------------------------------------
+    function renderTrainerJournalReview(container) {
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs bg-amber-100 text-amber-800 font-extrabold px-2.5 py-0.5 rounded-full">บทบาทครูฝึกสถานประกอบการ</span>
+              <h2 class="text-lg font-bold text-slate-800 mt-1">ตรวจรายงานการฝึกประจำวัน & ประเมินคะแนน</h2>
+              <p class="text-xs text-slate-500">ตรวจรับรองชั่วโมงการทำงาน ปัญหาอุปสรรค และให้ข้อเสนอแนะแก่นักศึกษา</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            ${appState.dailyReports.map(jr => {
+              const student = appState.users.find(u => u.id === jr.studentId) || {};
+              return `
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-sm text-slate-800">${student.name}</span>
+                        <span class="text-xs text-slate-400">(${student.dept})</span>
+                      </div>
+                      <div class="text-xs text-brand-600 font-bold mt-0.5">หัวข้องาน: ${jr.topic} (หน่วยที่ ${jr.unitNo})</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5">วันที่: ${jr.date}</div>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full font-bold ${
+                      jr.trainerStatus === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }">
+                      ${jr.trainerStatus === 'approved' ? 'ตรวจรับรองแล้ว' : 'รอตรวจ'}
+                    </span>
+                  </div>
+
+                  <p class="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    ${jr.description}
+                  </p>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <label class="block font-semibold text-slate-700 mb-1">ให้คะแนนการปฏิบัติงาน (1-5 ⭐)</label>
+                      <input type="number" step="0.1" min="1" max="5" value="${jr.trainerScore}" 
+                        onchange="updateTrainerJournalScore('${jr.id}', this.value)"
+                        class="w-full font-black text-amber-600 border border-slate-300 rounded-lg p-2">
+                    </div>
+                    <div class="sm:col-span-2">
+                      <label class="block font-semibold text-slate-700 mb-1">ความคิดเห็น / ข้อเสนอแนะของครูฝึก</label>
+                      <input type="text" value="${jr.trainerComment}" 
+                        onchange="updateTrainerJournalComment('${jr.id}', this.value)"
+                        class="w-full border border-slate-300 rounded-lg p-2">
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function updateTrainerJournalScore(id, score) {
+      const jr = appState.dailyReports.find(j => j.id === id);
+      if (jr) jr.trainerScore = parseFloat(score);
+      saveState();
+      showToast('บันทึกคะแนนสำเร็จ', `ให้คะแนน ${score} ดาวเรียบร้อยแล้ว`);
+    }
+
+    function updateTrainerJournalComment(id, comment) {
+      const jr = appState.dailyReports.find(j => j.id === id);
+      if (jr) jr.trainerComment = comment;
+      saveState();
+      showToast('บันทึกข้อเสนอแนะสำเร็จ', 'บันทึกความคิดเห็นครูฝึกเรียบร้อยแล้ว');
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.10 Executive Dashboard: Overview & Radar/Donut Charts
+    // ------------------------------------------------------------------------
+    function renderExecutiveDashboard(container) {
+      container.innerHTML = `
+        <div class="space-y-6">
+          
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs bg-purple-100 text-purple-800 font-extrabold px-2.5 py-0.5 rounded-full">Executive Management Dashboard</span>
+              <h2 class="text-lg font-bold text-slate-800 mt-1">แดชบอร์ดสรุปสถิติภาพรวม อาชีวศึกษาระบบทวิภาคี (ปวส. 2567)</h2>
+              <p class="text-xs text-slate-500">ข้อมูลเชื่อมโยงสถานศึกษา สถานประกอบการ และผลสัมฤทธิ์ทางการฝึกอาชีพ</p>
+            </div>
+            <button onclick="printExecutiveReportPDF()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-print"></i> พิมพ์สรุปผู้บริหาร (PDF)
+            </button>
+          </div>
+
+          <!-- Top Stats KPI Row -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-500 font-semibold">นักศึกษาทวิภาคีทั้งหมด</div>
+              <div class="text-2xl font-black text-slate-800 mt-1">${appState.users.filter(u => u.role === 'student').length} คน</div>
+              <div class="text-[10px] text-emerald-600 mt-1"><i class="fa-solid fa-arrow-trend-up"></i> ฝึกครบตามแผน 100%</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-500 font-semibold">สถานประกอบการร่วม MOU</div>
+              <div class="text-2xl font-black text-brand-600 mt-1">${appState.enterprises.length} แห่ง</div>
+              <div class="text-[10px] text-slate-400 mt-1">ชั้นนำด้านพลังงานและยานยนต์</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-500 font-semibold">อัตราการผ่านเกณฑ์ 4 ด้าน</div>
+              <div class="text-2xl font-black text-emerald-600 mt-1">98.5%</div>
+              <div class="text-[10px] text-emerald-600 mt-1">คะแนนเฉลี่ย 4.42 / 5.0</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-500 font-semibold">ทุนการศึกษาที่จัดสรรแล้ว</div>
+              <div class="text-2xl font-black text-amber-600 mt-1">฿ 35,000</div>
+              <div class="text-[10px] text-slate-400 mt-1">อนุมัติแล้ว 2 ทุน</div>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-column text-brand-600"></i>
+                <span>เปรียบเทียบผลประเมินสมรรถนะเฉลี่ย 4 กรอบคุณวุฒิแห่งชาติ</span>
+              </h3>
+              <div class="h-64 flex items-center justify-center">
+                <canvas id="execBarChart"></canvas>
+              </div>
+            </div>
+
+            <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 class="font-bold text-sm text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-emerald-600"></i>
+                <span>สัดส่วนการผ่านเกณฑ์และการสอนซ่อมเสริม</span>
+              </h3>
+              <div class="h-64 flex items-center justify-center">
+                <canvas id="execDonutChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `;
+
+      // Render Charts
+      setTimeout(() => {
+        const barCtx = document.getElementById('execBarChart');
+        if (barCtx) {
+          new Chart(barCtx, {
+            type: 'bar',
+            data: {
+              labels: ['คุณธรรม จริยธรรม', 'ความรู้', 'ทักษะวิชาชีพ', 'การประยุกต์ใช้'],
+              datasets: [{
+                label: 'คะแนนเฉลี่ยระดับสถานศึกษา',
+                data: [4.75, 4.30, 4.52, 4.38],
+                backgroundColor: ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6'],
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: { y: { min: 0, max: 5 } }
+            }
+          });
+        }
+
+        const donutCtx = document.getElementById('execDonutChart');
+        if (donutCtx) {
+          new Chart(donutCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['ผ่านเกณฑ์ยอดเยี่ยม', 'ผ่านเกณฑ์ดีมาก', 'ผ่านการซ่อมเสริมแล้ว'],
+              datasets: [{
+                data: [75, 20, 5],
+                backgroundColor: ['#0284c7', '#10b981', '#f59e0b']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+        }
+      }, 50);
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.11 Admin: CRUD Users, Enterprises, Training Plans, Permissions Matrix
+    // ------------------------------------------------------------------------
+    function renderAdminManagement(container) {
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs bg-slate-200 text-slate-800 font-extrabold px-2.5 py-0.5 rounded-full">ระบบจัดการข้อมูลแกนกลาง (Admin CRUD)</span>
+              <h2 class="text-lg font-bold text-slate-800 mt-1">จัดการผู้ใช้งานในระบบ (5 ระดับสิทธิ์)</h2>
+              <p class="text-xs text-slate-500">เพิ่ม-ลบ-แก้ไข นักศึกษา, ครูนิเทศ, ครูฝึก, ผู้บริหาร และผู้ดูแลระบบ</p>
+            </div>
+            <button onclick="openAddUserPrompt()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+              <i class="fa-solid fa-user-plus"></i> เพิ่มผู้ใช้งาน
+            </button>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                    <th class="py-3 px-4">ชื่อ-สกุล</th>
+                    <th class="py-3 px-4">บทบาทสิทธิ์ (Role)</th>
+                    <th class="py-3 px-4">แผนก/สังกัด</th>
+                    <th class="py-3 px-4">เบอร์ติดต่อ</th>
+                    <th class="py-3 px-4 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${appState.users.map(u => `
+                    <tr class="hover:bg-slate-50/70 transition">
+                      <td class="py-3 px-4 font-bold text-slate-800">${u.name}</td>
+                      <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          u.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                          u.role === 'executive' ? 'bg-blue-100 text-blue-800' :
+                          u.role === 'teacher' ? 'bg-emerald-100 text-emerald-800' :
+                          u.role === 'trainer' ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-100 text-slate-800'
+                        }">
+                          ${u.role.toUpperCase()}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-slate-600">${u.dept || '-'}</td>
+                      <td class="py-3 px-4 text-slate-500">${u.phone || '-'}</td>
+                      <td class="py-3 px-4 text-center">
+                        <button onclick="deleteUser('${u.id}')" class="text-slate-400 hover:text-rose-600 p-1" title="ลบผู้ใช้">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openAddUserPrompt() {
+      const name = prompt('ชื่อ-สกุล:', 'นายประสิทธิ์ วิชาการ');
+      if (!name) return;
+      const role = prompt('บทบาท (student, teacher, trainer, executive, admin):', 'teacher');
+      const dept = prompt('แผนกวิชา/สถานประกอบการ:', 'แผนกช่างยนต์');
+
+      appState.users.push({
+        id: 'usr_' + Date.now(),
+        name: name,
+        role: role || 'student',
+        dept: dept || 'สาขาวิชาช่างไฟฟ้า',
+        phone: '081-000-0000',
+        email: 'user@dve.edu'
+      });
+
+      saveState();
+      renderAdminManagement(document.getElementById('tabContentArea'));
+      showToast('เพิ่มผู้ใช้งานสำเร็จ', `เพิ่ม ${name} (${role}) เข้าระบบเรียบร้อยแล้ว`);
+    }
+
+    function deleteUser(id) {
+      if (!confirm('ยืนยันการลบผู้ใช้งานนี้?')) return;
+      appState.users = appState.users.filter(u => u.id !== id);
+      saveState();
+      renderAdminManagement(document.getElementById('tabContentArea'));
+      showToast('ลบผู้ใช้สำเร็จ', 'ลบข้อมูลผู้ใช้งานเรียบร้อยแล้ว');
+    }
+
+    // ------------------------------------------------------------------------
+    // 4.12 Remaining Tab Fallbacks
+    // ------------------------------------------------------------------------
+    function renderTeacherSupervisionReports(c) { renderTeacherSupervision(c); }
+    function renderRemedialMonitor(c) { renderStudentRemedialOnline(c); }
+    function renderTrainingPlansView(c) {
+      c.innerHTML = `
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-800">แผนการฝึกอาชีพร่วมกับสถานประกอบการ (รายวิชา 30104-5101)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            ${appState.trainingPlans[0].units.map(u => `
+              <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                <span class="text-[10px] font-bold bg-brand-600 text-white px-2 py-0.5 rounded">หน่วยที่ ${u.unitNo}</span>
+                <div class="font-bold text-slate-800 text-xs">${u.name}</div>
+                <div class="text-slate-500 font-semibold">${u.hours} ชั่วโมงการฝึก</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    function renderTrainerAttendanceView(c) { renderStudentAttendance(c); }
+    function renderTrainerCompetencyView(c) { renderTeacherSupervision(c); }
+    function renderExecutiveEnterprises(c) {
+      c.innerHTML = `
+        <div class="space-y-4">
+          <h3 class="text-base font-bold text-slate-800">เครือข่ายสถานประกอบการร่วมผลิต ปวส. 2567</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${appState.enterprises.map(e => `
+              <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <div class="font-bold text-sm text-slate-800">${e.name}</div>
+                <div class="text-xs text-slate-500">${e.address}</div>
+                <div class="text-xs text-brand-600 font-bold">นักศึกษาในสังกัด: ${e.studentCount} คน | ครูฝึก: ${e.trainerCount} ท่าน</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    function renderExecutiveReports(c) { printExecutiveReportPDF(); }
+    function renderAdminEnterprises(c) { renderExecutiveEnterprises(c); }
+    function renderAdminCourses(c) { renderTrainingPlansView(c); }
+    function renderAdminPermissions(c) {
+      c.innerHTML = `
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+          <h3 class="text-base font-bold text-slate-800 mb-4">ตารางเมตริกซ์สิทธิ์การเข้าถึง 5 ระดับ (Permission Matrix)</h3>
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 font-bold">
+                <th class="p-3">โมดูลระบบ</th>
+                <th class="p-3 text-center">นักศึกษา</th>
+                <th class="p-3 text-center">ครูนิเทศ</th>
+                <th class="p-3 text-center">ครูฝึก</th>
+                <th class="p-3 text-center">ผู้บริหาร</th>
+                <th class="p-3 text-center">ผู้ดูแลระบบ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr><td class="p-3 font-semibold">ลงเวลาเข้า-ออกงาน</td><td class="text-center text-emerald-600 font-bold">ทำรายการ</td><td class="text-center text-slate-400">ดูได้</td><td class="text-center text-emerald-600 font-bold">อนุมัติ</td><td class="text-center text-slate-400">ดูสถิติ</td><td class="text-center font-bold">Full CRUD</td></tr>
+              <tr><td class="p-3 font-semibold">บันทึกกิจกรรมประจำวัน</td><td class="text-center text-emerald-600 font-bold">เขียน/แก้/ลบ</td><td class="text-center text-slate-400">ดูได้</td><td class="text-center text-emerald-600 font-bold">ตรวจ/ให้คะแนน</td><td class="text-center text-slate-400">ดูรายงาน</td><td class="text-center font-bold">Full CRUD</td></tr>
+              <tr><td class="p-3 font-semibold">ประเมินคะแนนนิเทศ (0-5)</td><td class="text-center text-slate-400">ดูผล</td><td class="text-center text-emerald-600 font-bold">บันทึกคะแนน</td><td class="text-center text-slate-400">ดูผล</td><td class="text-center text-slate-400">ดูภาพรวม</td><td class="text-center font-bold">Full CRUD</td></tr>
+              <tr><td class="p-3 font-semibold">พิจารณาทุน & ตรวจเอกสารแนบ</td><td class="text-center text-emerald-600 font-bold">ยื่นขอทุน</td><td class="text-center text-emerald-600 font-bold">ตรวจประเมิน</td><td class="text-center text-slate-400">รับรอง</td><td class="text-center text-emerald-600 font-bold">อนุมัติจัดสรร</td><td class="text-center font-bold">Full CRUD</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. Special Feature 3: PDF Print Templates (A4 Formats)
+    // ------------------------------------------------------------------------
+
+    // 5.1 Single Page Certificate & Transcript with Radar Chart (ใบรับรองการผ่านการฝึกแบบแผ่นเดียว)
+    function renderStudentCertificate(container) {
+      const student = appState.users.find(u => u.id === 'std_01');
+      const enterprise = appState.enterprises.find(e => e.id === student.enterpriseId);
+      const sup = appState.supervisionScores.find(s => s.studentId === student.id);
+      const s = sup.scores;
+      const c1 = ((s.c1_discipline + s.c1_responsibility + s.c1_ethics + s.c1_public_mind) / 4).toFixed(2);
+      const c2 = ((s.c2_theory + s.c2_safety + s.c2_techno) / 3).toFixed(2);
+      const c3 = ((s.c3_skill_standard + s.c3_process_solving + s.c3_tool_usage) / 3).toFixed(2);
+      const c4 = ((s.c4_integration + s.c4_decision_making + s.c4_responsibility_output) / 3).toFixed(2);
+      const total = ((parseFloat(c1) + parseFloat(c2) + parseFloat(c3) + parseFloat(c4)) / 4).toFixed(2);
+
+      container.innerHTML = `
+        <div class="max-w-4xl mx-auto space-y-4">
+          <div class="flex justify-between items-center no-print">
+            <div>
+              <h3 class="text-base font-bold text-slate-800">พรีวิว: ใบรับรองและรายงานสรุปผลการฝึกอาชีพแบบแผ่นเดียว (Single-Page Certificate)</h3>
+              <p class="text-xs text-slate-500">เอกสารทางการตามหลักสูตร ปวส. 2567 พร้อมผลการประเมิน 4 กรอบคุณวุฒิแห่งชาติ</p>
+            </div>
+            <button onclick="triggerPrintCertificate()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-2">
+              <i class="fa-solid fa-print text-sm"></i>
+              <span>สั่งพิมพ์ / บันทึกเป็น PDF</span>
+            </button>
+          </div>
+
+          <!-- Printable Certificate Frame -->
+          <div id="certificateSheet" class="bg-white border-4 border-double border-slate-700 p-8 rounded-xl shadow-lg text-slate-900 space-y-5">
+            <!-- Header Logos -->
+            <div class="text-center space-y-1 pb-3 border-b-2 border-slate-800">
+              <div class="flex justify-center items-center gap-3">
+                <i class="fa-solid fa-graduation-cap text-3xl text-brand-700"></i>
+                <h1 class="text-xl font-black tracking-wide uppercase">วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</h1>
+              </div>
+              <h2 class="text-xs font-bold text-slate-700">สำนักงานคณะกรรมการการอาชีวศึกษา กระทรวงศึกษาธิการ</h2>
+              <div class="inline-block bg-slate-900 text-white text-[11px] font-bold px-3 py-0.5 rounded tracking-wider mt-1">
+                ใบรับรองและรายงานผลสัมฤทธิ์การฝึกอาชีพระบบทวิภาคี (ปวส. 2567)
+              </div>
+            </div>
+
+            <!-- Student Certification Text -->
+            <div class="text-center space-y-1 text-xs">
+              <p>เอกสารฉบับนี้ขอรับรองว่า</p>
+              <p class="text-lg font-black text-brand-900">${student.name}</p>
+              <p>รหัสประจำตัวนักศึกษา: <span class="font-bold">${student.code}</span> | สาขาวิชา: <span class="font-bold">${student.dept}</span></p>
+              <p>ได้ผ่านการฝึกอาชีพในสถานประกอบการ: <span class="font-bold text-slate-800">${enterprise.name}</span></p>
+              <p>จำนวนชั่วโมงการฝึกอาชีพสะสมรวม <span class="font-bold">720 ชั่วโมง</span> ครบถ้วนตามมาตรฐานหลักสูตรประกาศนียบัตรวิชาชีพชั้นสูง</p>
+            </div>
+
+            <!-- 4 Standards Table & Radar Scores -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <table class="w-full text-[11px] border border-slate-300 border-collapse">
+                <thead>
+                  <tr class="bg-slate-100 font-bold border-b border-slate-300">
+                    <th class="p-2 text-left">กรอบคุณวุฒิอาชีวศึกษาแห่งชาติ 4 ด้าน</th>
+                    <th class="p-2 text-center">คะแนน (เต็ม 5)</th>
+                    <th class="p-2 text-center">ผลการประเมิน</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <tr><td class="p-2">1. ด้านคุณธรรม จริยธรรมและค่านิยม</td><td class="p-2 text-center font-bold">${c1}</td><td class="p-2 text-center text-emerald-700 font-bold">ดีเยี่ยม</td></tr>
+                  <tr><td class="p-2">2. ด้านความรู้ในวิชาชีพ</td><td class="p-2 text-center font-bold">${c2}</td><td class="p-2 text-center text-emerald-700 font-bold">ดีมาก</td></tr>
+                  <tr><td class="p-2">3. ด้านทักษะการปฏิบัติงาน</td><td class="p-2 text-center font-bold">${c3}</td><td class="p-2 text-center text-emerald-700 font-bold">ดีมาก</td></tr>
+                  <tr><td class="p-2">4. ด้านการประยุกต์ใช้และความรับผิดชอบ</td><td class="p-2 text-center font-bold">${c4}</td><td class="p-2 text-center text-emerald-700 font-bold">ดีมาก</td></tr>
+                  <tr class="bg-slate-50 font-black"><td class="p-2">คะแนนประเมินรวมเฉลี่ย</td><td class="p-2 text-center text-brand-700">${total}</td><td class="p-2 text-center text-brand-700">ผ่านเกณฑ์ยอดเยี่ยม</td></tr>
+                </tbody>
+              </table>
+
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-center">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">ผลการวิเคราะห์สมรรถนะผ่าน Radar Diagram</div>
+                <div class="text-xs font-semibold text-emerald-700">ผ่านเกณฑ์มาตรฐานทุกมิติ (คะแนน > 3.00)</div>
+                <div class="mt-2 text-[10px] text-slate-500 leading-tight">
+                  นักศึกษามีความชำนาญการในการปฏิบัติงานระบบไฟฟ้าอุตสาหกรรม และสามารถประยุกต์ใช้เทคโนโลยีสมัยใหม่ได้อย่างมีประสิทธิภาพ
+                </div>
+              </div>
+            </div>
+
+            <!-- Signatures Grid -->
+            <div class="grid grid-cols-3 gap-4 pt-6 text-center text-[11px]">
+              <div class="space-y-1">
+                <div class="h-10 flex items-end justify-center font-serif italic text-slate-500">วิชัย รุ่งอรุณ</div>
+                <div class="border-t border-slate-400 pt-1 font-bold">(นายวิชัย รุ่งอรุณ)</div>
+                <div class="text-[10px] text-slate-500">ครูฝึกสถานประกอบการ</div>
+              </div>
+              <div class="space-y-1">
+                <div class="h-10 flex items-end justify-center font-serif italic text-slate-500">สมปอง วิเชียรศรี</div>
+                <div class="border-t border-slate-400 pt-1 font-bold">(ครูสมปอง วิเชียรศรี)</div>
+                <div class="text-[10px] text-slate-500">ครูนิเทศประจำวิทยาลัย</div>
+              </div>
+              <div class="space-y-1">
+                <div class="h-10 flex items-end justify-center font-serif italic text-slate-500">ธนกร ศิลปศาสตร์</div>
+                <div class="border-t border-slate-400 pt-1 font-bold">(ดร.ธนกร ศิลปศาสตร์)</div>
+                <div class="text-[10px] text-slate-500">ผู้อำนวยการวิทยาลัยฯ</div>
+              </div>
+            </div>
+
+            <div class="text-center text-[9px] text-slate-400 pt-2 border-t border-slate-200">
+              ออกให้ ณ วันที่ 24 ตุลาคม พ.ศ. 2569 | รหัสตรวจสอบเอกสารดิจิทัล: DVE-2567-STD01-SCG
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function triggerPrintCertificate() {
+      const printContainer = document.getElementById('printArea');
+      const certEl = document.getElementById('certificateSheet');
+      if (!printContainer || !certEl) return;
+      printContainer.innerHTML = certEl.outerHTML;
+      printContainer.classList.remove('hidden');
+      window.print();
+      printContainer.classList.add('hidden');
+    }
+
+    // 5.2 Print Supervision Report PDF
+    function printSupervisionReportPDF() {
+      const student = appState.users.find(u => u.id === 'std_01');
+      const sup = appState.supervisionScores.find(s => s.studentId === student.id);
+      const printContainer = document.getElementById('printArea');
+      if (!printContainer) return;
+
+      printContainer.innerHTML = `
+        <div class="p-8 space-y-4 text-xs font-sans text-slate-900">
+          <div class="text-center border-b pb-3 space-y-1">
+            <h2 class="text-base font-bold">รายงานผลการนิเทศการฝึกอาชีพระบบทวิภาคี (ปวส. 2567)</h2>
+            <p>วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์ ร่วมกับ บจก. ปูนซิเมนต์ไทย (แก่งคอย)</p>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div><strong>นักศึกษา:</strong> ${student.name} (${student.code})</div>
+            <div><strong>สาขาวิชา:</strong> ${student.dept}</div>
+            <div><strong>ครูผู้นิเทศ:</strong> ครูสมปอง วิเชียรศรี</div>
+            <div><strong>วันที่นิเทศ:</strong> ${sup.visitDate} (ครั้งที่ ${sup.visitNo})</div>
+          </div>
+          <table class="w-full text-xs border border-slate-400 border-collapse mt-4">
+            <thead>
+              <tr class="bg-slate-100 font-bold border-b border-slate-400">
+                <th class="p-2 text-left">ตัวชี้วัดสมรรถนะ</th>
+                <th class="p-2 text-center">คะแนน</th>
+                <th class="p-2 text-left">ข้อคิดเห็นและข้อเสนอแนะ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-300">
+              <tr><td class="p-2">1. ด้านคุณธรรม จริยธรรมและค่านิยม</td><td class="p-2 text-center font-bold">4.80</td><td class="p-2">ปฏิบัติตามกฎโรงงานอย่างเคร่งครัด ตรงต่อเวลา</td></tr>
+              <tr><td class="p-2">2. ด้านความรู้ในวิชาชีพ</td><td class="p-2 text-center font-bold">4.50</td><td class="p-2">เข้าใจระบบไฟฟ้ากำลังและความปลอดภัยสูง</td></tr>
+              <tr><td class="p-2">3. ด้านทักษะการปฏิบัติงาน</td><td class="p-2 text-center font-bold">4.57</td><td class="p-2">ใช้เครื่องมือวัดและ Overhaul มอเตอร์ได้ตามสเปก</td></tr>
+              <tr><td class="p-2">4. ด้านการประยุกต์ใช้และความรับผิดชอบ</td><td class="p-2 text-center font-bold">4.33</td><td class="p-2">รับผิดชอบงานที่ได้รับมอบหมายได้เสร็จสิ้นตามเวลา</td></tr>
+            </tbody>
+          </table>
+          <div class="mt-4 p-3 bg-slate-50 border rounded">
+            <strong>ความเห็นครูนิเทศ:</strong> ${sup.summaryNote}
+          </div>
+          <div class="mt-8 flex justify-between text-center pt-8">
+            <div>ลงชื่อ............................................ครูฝึก</div>
+            <div>ลงชื่อ............................................ครูนิเทศ</div>
+          </div>
+        </div>
+      `;
+
+      printContainer.classList.remove('hidden');
+      window.print();
+      printContainer.classList.add('hidden');
+    }
+
+    // 5.3 Print Scholarship Consideration Report PDF
+    function printScholarshipDocSummary() {
+      const sch = currentViewingScholarship || appState.scholarships[0];
+      const student = appState.users.find(u => u.id === sch.studentId) || {};
+      const printContainer = document.getElementById('printArea');
+      if (!printContainer) return;
+
+      printContainer.innerHTML = `
+        <div class="p-8 space-y-4 text-xs font-sans text-slate-900">
+          <div class="text-center border-b pb-3 space-y-1">
+            <h2 class="text-base font-bold">รายงานผลการพิจารณาและจัดสรรทุนการศึกษาทวิภาคี</h2>
+            <p>คณะกรรมการพิจารณาทุนการศึกษา ประจำปีการศึกษา ${sch.academicYear}</p>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div><strong>ชื่อผู้ขอรับทุน:</strong> ${student.name} (${student.code})</div>
+            <div><strong>โครงการทุน:</strong> ${sch.scholarshipName}</div>
+            <div><strong>รายได้ครอบครัวเฉลี่ย:</strong> ฿ ${sch.annualIncome.toLocaleString()} บาท/ปี</div>
+            <div><strong>ผลการพิจารณา:</strong> ${sch.status === 'approved' ? 'อนุมัติทุนการศึกษา' : 'อยู่ระหว่างพิจารณา'}</div>
+            <div><strong>วงเงินที่จัดสรร:</strong> ฿ ${sch.approvedAmount.toLocaleString()} บาท</div>
+            <div><strong>คะแนนสัมภาษณ์:</strong> ${sch.interviewScore} / 100 คะแนน</div>
+          </div>
+          <div class="mt-4 p-3 border rounded bg-slate-50">
+            <strong>เอกสารประกอบที่ยื่นตรวจ:</strong>
+            <ul class="list-disc list-inside mt-1 space-y-0.5">
+              ${sch.documents.map(d => `<li>${d.docType} (${d.fileName}) - ตรวจสอบแล้ว</li>`).join('')}
+            </ul>
+          </div>
+          <div class="mt-3 p-3 border rounded">
+            <strong>ความเห็นและมติคณะกรรมการ:</strong> ${sch.committeeNotes}
+          </div>
+          <div class="mt-12 grid grid-cols-3 gap-4 text-center">
+            <div>(ลงชื่อ)............................................<br>กรรมการ</div>
+            <div>(ลงชื่อ)............................................<br>กรรมการและเลขานุการ</div>
+            <div>(ลงชื่อ)............................................<br>ประธานคณะกรรมการ</div>
+          </div>
+        </div>
+      `;
+
+      printContainer.classList.remove('hidden');
+      window.print();
+      printContainer.classList.add('hidden');
+    }
+
+    // 5.4 Print Attendance Report PDF
+    function printAttendanceReport() {
+      const student = appState.users.find(u => u.id === 'std_01');
+      const printContainer = document.getElementById('printArea');
+      if (!printContainer) return;
+
+      printContainer.innerHTML = `
+        <div class="p-8 space-y-4 text-xs font-sans text-slate-900">
+          <div class="text-center border-b pb-3">
+            <h2 class="text-base font-bold">รายงานสรุปเวลาการปฏิบัติงานของนักศึกษาทวิภาคี (Attendance Log)</h2>
+            <p>${student.name} (${student.code}) - ${student.dept}</p>
+          </div>
+          <table class="w-full text-xs border border-slate-300 border-collapse">
+            <thead>
+              <tr class="bg-slate-100 border-b">
+                <th class="p-2 text-left">วันที่</th>
+                <th class="p-2 text-center">เวลาเข้า</th>
+                <th class="p-2 text-center">เวลาออก</th>
+                <th class="p-2 text-center">สถานะ</th>
+                <th class="p-2 text-left">พิกัด GPS / หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${appState.attendance.map(a => `
+                <tr>
+                  <td class="p-2 font-semibold">${a.date}</td>
+                  <td class="p-2 text-center">${a.clockIn || '-'}</td>
+                  <td class="p-2 text-center">${a.clockOut || '-'}</td>
+                  <td class="p-2 text-center">${a.status === 'normal' ? 'ปกติ' : 'สาย'}</td>
+                  <td class="p-2">${a.location}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="mt-8 flex justify-between text-center pt-8">
+            <div>ลงชื่อ............................................นักศึกษา</div>
+            <div>ลงชื่อ............................................ครูฝึกสถานประกอบการ</div>
+          </div>
+        </div>
+      `;
+
+      printContainer.classList.remove('hidden');
+      window.print();
+      printContainer.classList.add('hidden');
+    }
+
+    // 5.5 Print Executive Report PDF
+    function printExecutiveReportPDF() {
+      const printContainer = document.getElementById('printArea');
+      if (!printContainer) return;
+
+      printContainer.innerHTML = `
+        <div class="p-8 space-y-4 text-xs font-sans text-slate-900">
+          <div class="text-center border-b pb-3">
+            <h2 class="text-lg font-bold">รายงานสรุปผลการบริหารจัดการอาชีวศึกษาระบบทวิภาคี (ปวส. 2567)</h2>
+            <p>วิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์</p>
+          </div>
+          <div class="grid grid-cols-3 gap-3 text-center my-4">
+            <div class="border p-2 rounded">นักศึกษาทวิภาคี: <strong>${appState.users.filter(u=>u.role==='student').length} คน</strong></div>
+            <div class="border p-2 rounded">สถานประกอบการ: <strong>${appState.enterprises.length} แห่ง</strong></div>
+            <div class="border p-2 rounded">อัตราผ่านการประเมิน: <strong>98.5%</strong></div>
+          </div>
+          <p>สรุปผลการประเมิน 4 กรอบคุณวุฒิแห่งชาติ: นักศึกษาผ่านเกณฑ์มาตรฐานสมรรถนะครบทุกมิติ โดยมีคะแนนเฉลี่ยรวม 4.42/5.0 ด้านคุณธรรมจริยธรรมได้รับคะแนนสูงสุด 4.75</p>
+          <div class="mt-8 text-center pt-8">
+            (ลงชื่อ)........................................................<br>
+            (ดร.ธนกร ศิลปศาสตร์)<br>
+            ผู้อำนวยการวิทยาลัยเทคนิคท่าหลวงซิเมนต์ไทยอนุสรณ์
+          </div>
+        </div>
+      `;
+
+      printContainer.classList.remove('hidden');
+      window.print();
+      printContainer.classList.add('hidden');
+    }
+
+    // ------------------------------------------------------------------------
+    // 6. Cloud Settings Modal Logic (Google Sheets & Drive)
+    // ------------------------------------------------------------------------
+    function openCloudModal() {
+      const input = document.getElementById('gasUrlInput');
+      if (input) input.value = appState.gasUrl;
+      document.getElementById('cloudSetupModal').classList.remove('hidden');
+    }
+
+    function closeCloudModal() {
+      document.getElementById('cloudSetupModal').classList.add('hidden');
+    }
+
+    function saveCloudConfig() {
+      const input = document.getElementById('gasUrlInput');
+      if (input) {
+        appState.gasUrl = input.value.trim();
+        localStorage.setItem('dve_gas_url', appState.gasUrl);
+        saveState();
+        showToast('บันทึกการตั้งค่าแล้ว', 'ระบบจะทำการซิงค์กับ Google Sheets เมื่อมีการเปลี่ยนแปลง');
+      }
+      closeCloudModal();
+    }
+
+    async function testGasConnection() {
+      const input = document.getElementById('gasUrlInput');
+      const logBox = document.getElementById('gasTestResultBox');
+      const url = input.value.trim();
+
+      if (!url) {
+        alert('กรุณากรอก Google Apps Script Web App URL');
+        return;
+      }
+
+      logBox.classList.remove('hidden');
+      logBox.className = 'p-3 rounded-xl text-xs font-mono border bg-amber-50 text-amber-800 border-amber-200';
+      logBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังทดสอบ Ping ไปยัง Google Apps Script...';
+
+      try {
+        const pingUrl = url + (url.includes('?') ? '&' : '?') + 'action=ping';
+        const res = await fetch(pingUrl);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          logBox.className = 'p-3 rounded-xl text-xs font-mono border bg-emerald-50 text-emerald-800 border-emerald-200';
+          logBox.innerHTML = `✅ เชื่อมต่อสำเร็จ!<br>ข้อความ: ${data.message}<br>Spreadsheet: ${data.spreadsheetName || '-'}<br>เวลา: ${data.timestamp}`;
+          updateCloudBadge('connected');
+        } else {
+          throw new Error(data.message || 'Error response from script');
+        }
+      } catch (err) {
+        logBox.className = 'p-3 rounded-xl text-xs font-mono border bg-rose-50 text-rose-800 border-rose-200';
+        logBox.innerHTML = `⚠️ ผลการทดสอบ (CORS/Offline): ระบบจะทำงานผ่าน no-cors background sync อัตโนมัติ<br><span class="text-[10px] text-slate-500">หมายเหตุ: หาก Web App Deploy แบบ 'Anyone' ข้อมูลจะถูกบันทึกขึ้น Google Sheets และ Drive โดยสมบูรณ์</span>`;
+        updateCloudBadge('local');
+      }
+    }
+
+    function resetToMockData() {
+      if (!confirm('ยืนยันการคืนค่าข้อมูลเริ่มต้น (Mock Data ปวส. 2567 ทั้งหมด)?')) return;
+      localStorage.removeItem('dve_system_data_v1');
+      appState = JSON.parse(JSON.stringify(defaultData));
+      saveState();
+      closeCloudModal();
+      showToast('คืนค่าสำเร็จ', 'รีเซ็ตข้อมูลเป็นชุดข้อมูลเริ่มต้น ปวส. 2567 เรียบร้อยแล้ว');
+      renderNavTabs();
+      renderCurrentTab();
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. System Initialization on Page Load
+    // ------------------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set Initial Role in Selector
+      const sel = document.getElementById('roleSelector');
+      if (sel) sel.value = appState.currentUserRole;
+
+      // Update Cloud Status Badge
+      if (appState.gasUrl) updateCloudBadge('connected');
+      else updateCloudBadge('local');
+
+      // Render Tabs and Current View
+      renderNavTabs();
+      renderCurrentTab();
+    });
+  </script>
+
+</body>
+</html>
